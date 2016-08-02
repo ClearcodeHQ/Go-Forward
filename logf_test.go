@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 	"time"
+	"math/rand"
 )
 
 type TestSyslogPriority struct {
@@ -22,6 +23,16 @@ type TestMessage struct {
 	message string
 }
 
+func RandomString(strlen int) string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, strlen)
+	for i := 0; i < strlen; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
+}
+
 var test_priorities = []TestSyslogPriority {
 	TestSyslogPriority{severity: LOG_ERR, facility: LOG_MAIL, priority: 19},
 	TestSyslogPriority{severity: LOG_EMERG, facility: LOG_KERN, priority: 0},
@@ -39,7 +50,16 @@ var test_messages = []TestMessage {
 		message: "pam_unix(sudo:session): session closed for user root",
 	},
 	TestMessage{
-		raw:  "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: pam_unix(su:session): session closed for user root\n",
+		raw:  "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: \tpam_unix(su:session): session closed for user root\n",
+		severity: LOG_INFO,
+		facility: LOG_AUTHPRIV,
+		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC),
+		hostname: "debian",
+		tag: "su[2106]:",
+		message: "pam_unix(su:session): session closed for user root",
+	},
+	TestMessage{
+		raw:  "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]:  pam_unix(su:session): session closed for user root \n",
 		severity: LOG_INFO,
 		facility: LOG_AUTHPRIV,
 		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC),
@@ -48,6 +68,8 @@ var test_messages = []TestMessage {
 		message: "pam_unix(su:session): session closed for user root",
 	},
 }
+
+var empty_message = "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
 
 
 func TestDecodeSyslogPriority(t *testing.T) {
@@ -78,7 +100,10 @@ func TestEncodeSyslogPriority(t *testing.T) {
 
 func TestParseMessage(t *testing.T) {
 	for _, elem := range test_messages {
-		parsed := decodeMessage(elem.raw)
+		parsed, err := decodeMessage(elem.raw)
+		if err != nil {
+			t.Errorf("Error while parsing: %q", err)
+		}
 
 		if parsed.severity != elem.severity {
 			t.Errorf("Wrong severity %q. Should be: %q", parsed.severity, elem.severity)
@@ -100,5 +125,22 @@ func TestParseMessage(t *testing.T) {
 		if parsed.message != elem.message {
 			t.Errorf("Wrong message %q. Should be: %q", parsed.message, elem.message)
 		}
+	}
+}
+
+
+func TestEmptyMessage(t *testing.T) {
+	_, err := decodeMessage(empty_message)
+	if err != EmptyMessage {
+		t.Errorf("Should return: %q. Got: %q", err)
+	}
+}
+
+
+func TestMessageTooLong(t *testing.T) {
+	msg := RandomString(MAX_MGS_LEN)
+	_, err := decodeMessage(msg)
+	if err != MessageTooLong {
+		t.Errorf("Should return: %q. Got: %q", err)
 	}
 }

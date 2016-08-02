@@ -4,6 +4,7 @@ import (
 	"time"
 	"strings"
 	"fmt"
+	"errors"
 )
 
 type Severity uint8
@@ -22,6 +23,8 @@ type SyslogMessage struct {
 	syslogtag string
 	hostname string
 }
+
+const MAX_MGS_LEN = 2048
 
 const (
 	// From /usr/include/sys/syslog.h.
@@ -63,6 +66,9 @@ const (
 	LOG_LOCAL7
 )
 
+var EmptyMessage error = errors.New("Message is empty.")
+var MessageTooLong error = fmt.Errorf("Message is too big. Max allowed %d", MAX_MGS_LEN)
+
 
 func (s SyslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
@@ -80,25 +86,27 @@ func encodeSyslogPriority(priority SyslogPiority) (uint8) {
 }
 
 
-func decodeMessage(msg string) SyslogMessage {
-	// return error if:
-	// msg is empty
-	// parsing fails
-	// message is too long. eg some binary shit
+func decodeMessage(msg string) (SyslogMessage, error) {
 	var priority uint8
 	var timestamp string
+	if len(msg) >= MAX_MGS_LEN {
+		return SyslogMessage{}, MessageTooLong
+	}
 	splited := strings.SplitN(msg, " ", 4)
 	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
-	msg = strings.TrimRight(msg, "\n")
+	msg = strings.Trim(msg, " \n\t")
+	if msg == "" {
+		return SyslogMessage{}, EmptyMessage
+	}
 
 	_, err := fmt.Sscanf(header, "<%d>%s", &priority, &timestamp)
 	if err != nil {
-		panic(err)
+		return SyslogMessage{}, err
 	}
 
 	ts, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
-		panic(err)
+		return SyslogMessage{}, err
 	}
 
 	syspri := decodeSyslogPriority(priority)
@@ -110,5 +118,5 @@ func decodeMessage(msg string) SyslogMessage {
 		timestamp: ts,
 		syslogtag: tag,
 		hostname: hname,
-	}
+	}, nil
 }

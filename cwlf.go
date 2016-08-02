@@ -11,7 +11,7 @@ import (
 
 
 const LISTEN_ADDRESS = "localhost:5514"
-params := &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
+var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
 
 
 func main() {
@@ -30,8 +30,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		parsed := decodeMessage(string(buf[0:n]))
-		fmt.Println(parsed)
+		parsed, err := decodeMessage(string(buf[0:n]))
+		if err == nil {
+			fmt.Println(parsed)
+		} else {
+			fmt.Println(err)
+		}
 	}
 }
 
