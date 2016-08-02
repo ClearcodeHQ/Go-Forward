@@ -1,4 +1,10 @@
-package logf
+package main
+
+import (
+	"time"
+	"strings"
+	"fmt"
+)
 
 type Severity uint8
 type Facility uint8
@@ -6,6 +12,15 @@ type Facility uint8
 type SyslogPiority struct {
 	facility Facility
 	severity Severity
+}
+
+type SyslogMessage struct {
+	facility Facility
+	severity Severity
+	message string
+	timestamp time.Time
+	syslogtag string
+	hostname string
 }
 
 const (
@@ -48,10 +63,52 @@ const (
 	LOG_LOCAL7
 )
 
-func decodeSyslogPriority(priority byte) (SyslogPiority) {
+
+func (s SyslogMessage) String() string {
+	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
+						s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
+}
+
+
+func decodeSyslogPriority(priority uint8) (SyslogPiority) {
 	return SyslogPiority{facility: Facility(priority / 8), severity: Severity(priority % 8)}
 }
 
-func encodeSyslogPriority(priority SyslogPiority) (byte) {
-	return byte(priority.facility * 8) + byte(priority.severity)
+
+func encodeSyslogPriority(priority SyslogPiority) (uint8) {
+	return uint8(priority.facility * 8) + uint8(priority.severity)
+}
+
+
+func decodeMessage(msg string) SyslogMessage {
+	// return error if:
+	// msg is empty
+	// parsing fails
+	// message is too long. eg some binary shit
+	var priority uint8
+	var timestamp string
+	splited := strings.SplitN(msg, " ", 4)
+	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
+	msg = strings.TrimRight(msg, "\n")
+
+	_, err := fmt.Sscanf(header, "<%d>%s", &priority, &timestamp)
+	if err != nil {
+		panic(err)
+	}
+
+	ts, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		panic(err)
+	}
+
+	syspri := decodeSyslogPriority(priority)
+
+	return SyslogMessage{
+		facility: syspri.facility,
+		severity: syspri.severity,
+		message: msg,
+		timestamp: ts,
+		syslogtag: tag,
+		hostname: hname,
+	}
 }
