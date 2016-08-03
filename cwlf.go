@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -11,6 +12,21 @@ import (
 
 
 const LISTEN_ADDRESS = "localhost:5514"
+// Maximum number of log events in a batch.
+const MAX_BATCH_EVENTS = 10000
+// Maximum batch size in bytes.
+const MAX_BATCH_SIZE = 1048576
+// A batch of log events in a single PutLogEvents request cannot span more than 24 hours.
+const MAX_BATCH_SPAN_TIME = 24 * time.Hour
+// How many bytes to append to each log event.
+const EVENT_SIZE_OVERHEAD = 26
+// None of the log events in the batch can be more than 2 hours in the future.
+const EVENT_FUTURE_TIMEDELTA = 2 * time.Hour
+// None of the log events in the batch can be older than 14 days.
+const EVENT_PAST_TIMEDELTA = 14 * 24 * time.Hour
+// DescribeLogStreams transactions/second.
+const DescribeLogStreams_TPS = 5
+
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
 
 
