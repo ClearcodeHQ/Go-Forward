@@ -24,6 +24,8 @@ type SyslogMessage struct {
 	hostname string
 }
 
+type ByUnixTimeStamp []SyslogMessage
+
 const MAX_MGS_LEN = 2048
 
 const (
@@ -74,6 +76,11 @@ func (s SyslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
 						s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
+
+
+func (m ByUnixTimeStamp) Len() int           { return len(m) }
+func (m ByUnixTimeStamp) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m ByUnixTimeStamp) Less(i, j int) bool { return m[i].timestamp.Unix() < m[j].timestamp.Unix() }
 
 
 func decodeSyslogPriority(priority uint8) (SyslogPiority) {

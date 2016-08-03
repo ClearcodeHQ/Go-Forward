@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 	"math/rand"
+	"sort"
 )
 
 type TestSyslogPriority struct {
@@ -142,5 +143,27 @@ func TestMessageTooLong(t *testing.T) {
 	_, err := decodeMessage(msg)
 	if err != MessageTooLong {
 		t.Errorf("Should return: %q. Got: %q", err)
+	}
+}
+
+
+func TestMessageSorting(t *testing.T) {
+	unsorted := []SyslogMessage {
+		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
+		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
+	}
+	sorted := []SyslogMessage {
+		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
+		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
+	}
+
+	sort.Sort(ByUnixTimeStamp(unsorted))
+
+	for i, elem := range sorted {
+		unsorted_unix := unsorted[i].timestamp.Unix()
+		sorted_unix := elem.timestamp.Unix()
+		if  unsorted_unix != sorted_unix  {
+			t.Errorf("Timestamps should be equal. Unsorted: %v Sorted: %v", unsorted_unix, sorted_unix)
+		}
 	}
 }
