@@ -70,8 +70,6 @@ var test_messages = []TestMessage {
 	},
 }
 
-var empty_message = "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
-
 
 func TestDecodeSyslogPriority(t *testing.T) {
 
@@ -131,9 +129,10 @@ func TestParseMessage(t *testing.T) {
 
 
 func TestEmptyMessage(t *testing.T) {
+	empty_message := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
 	_, err := decodeMessage(empty_message)
 	if err != EmptyMessage {
-		t.Errorf("Should return: %q. Got: %q", err)
+		t.Errorf("Should return: %q. Got: %q", EmptyMessag, err)
 	}
 }
 
@@ -142,7 +141,7 @@ func TestMessageTooLong(t *testing.T) {
 	msg := RandomString(MAX_MGS_LEN)
 	_, err := decodeMessage(msg)
 	if err != MessageTooLong {
-		t.Errorf("Should return: %q. Got: %q", err)
+		t.Errorf("Should return: %q. Got: %q", MessageTooLong, err)
 	}
 }
 
