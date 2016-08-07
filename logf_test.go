@@ -132,7 +132,7 @@ func TestEmptyMessage(t *testing.T) {
 	empty_message := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
 	_, err := decodeMessage(empty_message)
 	if err != EmptyMessage {
-		t.Errorf("Should return: %q. Got: %q", EmptyMessag, err)
+		t.Errorf("Should return: %q. Got: %q", EmptyMessage, err)
 	}
 }
 
