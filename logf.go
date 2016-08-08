@@ -1,129 +1,124 @@
 package main
 
 import (
-	"time"
-	"strings"
-	"fmt"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 )
 
-type Severity uint8
-type Facility uint8
+type severity uint8
+type facility uint8
 
-type SyslogPiority struct {
-	facility Facility
-	severity Severity
+type syslogPiority struct {
+	facility facility
+	severity severity
 }
 
-type SyslogMessage struct {
-	facility Facility
-	severity Severity
-	message string
+type syslogMessage struct {
+	facility  facility
+	severity  severity
+	message   string
 	timestamp time.Time
 	syslogtag string
-	hostname string
+	hostname  string
 }
 
-type ByUnixTimeStamp []SyslogMessage
+type byUnixTimeStamp []syslogMessage
 
-const MAX_MGS_LEN = 2048
+const maxMsgLen = 2048
 
+// From /usr/include/sys/syslog.h.
 const (
-	// From /usr/include/sys/syslog.h.
-	LOG_EMERG Severity = iota
-	LOG_ALERT
-	LOG_CRIT
-	LOG_ERR
-	LOG_WARNING
-	LOG_NOTICE
-	LOG_INFO
-	LOG_DEBUG
+	logEmerg severity = iota
+	logAlert
+	logCrit
+	logErr
+	logWarning
+	logNotice
+	logInfo
+	logDebug
 )
 
+// From /usr/include/sys/syslog.h.
 const (
-	// From /usr/include/sys/syslog.h.
-	LOG_KERN Facility = iota
-	LOG_USER
-	LOG_MAIL
-	LOG_DAEMON
-	LOG_AUTH
-	LOG_SYSLOG
-	LOG_LPR
-	LOG_NEWS
-	LOG_UUCP
-	LOG_CLOCK
-	LOG_AUTHPRIV
-	LOG_FTP
-	LOG_NTP
-	LOG_LOGAUDIT
-	LOG_LOGALERT
-	LOG_CRON
-	LOG_LOCAL0
-	LOG_LOCAL1
-	LOG_LOCAL2
-	LOG_LOCAL3
-	LOG_LOCAL4
-	LOG_LOCAL5
-	LOG_LOCAL6
-	LOG_LOCAL7
+	logKern facility = iota
+	logUser
+	logMail
+	logDaemon
+	logAuth
+	logSyslog
+	logLpr
+	logNews
+	logUucp
+	logClock
+	logAuthpriv
+	logFtp
+	logNtp
+	logLogaudit
+	logLogalert
+	logCron
+	logLocal0
+	logLocal1
+	logLocal2
+	logLocal3
+	logLocal4
+	logLocal5
+	logLocal6
+	logLocal7
 )
 
-var EmptyMessage error = errors.New("Message is empty.")
-var MessageTooLong error = fmt.Errorf("Message is too big. Max allowed %d", MAX_MGS_LEN)
+var errEmptyMessage = errors.New("Message is empty.")
+var errMsgTooLong = fmt.Errorf("Message is too big. Max allowed %d", maxMsgLen)
 
-
-func (s SyslogMessage) String() string {
+func (s syslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
-						s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
+		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
 
+func (m byUnixTimeStamp) Len() int           { return len(m) }
+func (m byUnixTimeStamp) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m byUnixTimeStamp) Less(i, j int) bool { return m[i].timestamp.Unix() < m[j].timestamp.Unix() }
 
-func (m ByUnixTimeStamp) Len() int           { return len(m) }
-func (m ByUnixTimeStamp) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m ByUnixTimeStamp) Less(i, j int) bool { return m[i].timestamp.Unix() < m[j].timestamp.Unix() }
-
-
-func decodeSyslogPriority(priority uint8) (SyslogPiority) {
-	return SyslogPiority{facility: Facility(priority / 8), severity: Severity(priority % 8)}
+func decodeSyslogPriority(priority uint8) syslogPiority {
+	return syslogPiority{facility: facility(priority / 8), severity: severity(priority % 8)}
 }
 
-
-func encodeSyslogPriority(priority SyslogPiority) (uint8) {
-	return uint8(priority.facility * 8) + uint8(priority.severity)
+func encodeSyslogPriority(priority syslogPiority) uint8 {
+	return uint8(priority.facility*8) + uint8(priority.severity)
 }
 
-
-func decodeMessage(msg string) (SyslogMessage, error) {
+func decodeMessage(msg string) (syslogMessage, error) {
 	var priority uint8
 	var timestamp string
-	if len(msg) >= MAX_MGS_LEN {
-		return SyslogMessage{}, MessageTooLong
+	if len(msg) >= maxMsgLen {
+		return syslogMessage{}, errMsgTooLong
 	}
 	splited := strings.SplitN(msg, " ", 4)
 	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
 	msg = strings.Trim(msg, " \n\t")
 	if msg == "" {
-		return SyslogMessage{}, EmptyMessage
+		return syslogMessage{}, errEmptyMessage
 	}
 
 	_, err := fmt.Sscanf(header, "<%d>%s", &priority, &timestamp)
 	if err != nil {
-		return SyslogMessage{}, err
+		return syslogMessage{}, err
 	}
 
 	ts, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
-		return SyslogMessage{}, err
+		return syslogMessage{}, err
 	}
 
 	syspri := decodeSyslogPriority(priority)
 
-	return SyslogMessage{
-		facility: syspri.facility,
-		severity: syspri.severity,
-		message: msg,
+	return syslogMessage{
+		facility:  syspri.facility,
+		severity:  syspri.severity,
+		message:   msg,
 		timestamp: ts,
 		syslogtag: tag,
-		hostname: hname,
+		hostname:  hname,
 	}, nil
 }

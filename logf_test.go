@@ -1,27 +1,27 @@
 package main
 
 import (
-	"testing"
-	"time"
 	"math/rand"
 	"sort"
+	"testing"
+	"time"
 )
 
 type TestSyslogPriority struct {
 	priority uint8
-	severity Severity
-	facility Facility
+	severity severity
+	facility facility
 }
 
 type TestMessage struct {
 	raw string
 	// Parsed expected fields
-	severity Severity
-	facility Facility
+	severity  severity
+	facility  facility
 	timestamp time.Time
-	hostname string
-	tag string
-	message string
+	hostname  string
+	tag       string
+	message   string
 }
 
 func RandomString(strlen int) string {
@@ -34,46 +34,45 @@ func RandomString(strlen int) string {
 	return string(result)
 }
 
-var test_priorities = []TestSyslogPriority {
-	TestSyslogPriority{severity: LOG_ERR, facility: LOG_MAIL, priority: 19},
-	TestSyslogPriority{severity: LOG_EMERG, facility: LOG_KERN, priority: 0},
-	TestSyslogPriority{severity: LOG_ALERT, facility: LOG_USER, priority: 9},
+var testPriorities = []TestSyslogPriority{
+	{severity: logErr, facility: logMail, priority: 19},
+	{severity: logEmerg, facility: logKern, priority: 0},
+	{severity: logAlert, facility: logUser, priority: 9},
 }
 
-var test_messages = []TestMessage {
-	TestMessage{
-		raw:  "<86>2016-07-23T14:48:16.970210+02:00 debian sudo: pam_unix(sudo:session): session closed for user root",
-		severity: LOG_INFO,
-		facility: LOG_AUTHPRIV,
+var testMessages = []TestMessage{
+	{
+		raw:       "<86>2016-07-23T14:48:16.970210+02:00 debian sudo: pam_unix(sudo:session): session closed for user root",
+		severity:  logInfo,
+		facility:  logAuthpriv,
 		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 970210000, time.UTC),
-		hostname: "debian",
-		tag: "sudo:",
-		message: "pam_unix(sudo:session): session closed for user root",
+		hostname:  "debian",
+		tag:       "sudo:",
+		message:   "pam_unix(sudo:session): session closed for user root",
 	},
-	TestMessage{
-		raw:  "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: \tpam_unix(su:session): session closed for user root\n",
-		severity: LOG_INFO,
-		facility: LOG_AUTHPRIV,
+	{
+		raw:       "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: \tpam_unix(su:session): session closed for user root\n",
+		severity:  logInfo,
+		facility:  logAuthpriv,
 		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC),
-		hostname: "debian",
-		tag: "su[2106]:",
-		message: "pam_unix(su:session): session closed for user root",
+		hostname:  "debian",
+		tag:       "su[2106]:",
+		message:   "pam_unix(su:session): session closed for user root",
 	},
-	TestMessage{
-		raw:  "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]:  pam_unix(su:session): session closed for user root \n",
-		severity: LOG_INFO,
-		facility: LOG_AUTHPRIV,
+	{
+		raw:       "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]:  pam_unix(su:session): session closed for user root \n",
+		severity:  logInfo,
+		facility:  logAuthpriv,
 		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC),
-		hostname: "debian",
-		tag: "su[2106]:",
-		message: "pam_unix(su:session): session closed for user root",
+		hostname:  "debian",
+		tag:       "su[2106]:",
+		message:   "pam_unix(su:session): session closed for user root",
 	},
 }
-
 
 func TestDecodeSyslogPriority(t *testing.T) {
 
-	for _, elem := range test_priorities {
+	for _, elem := range testPriorities {
 		decoded := decodeSyslogPriority(elem.priority)
 		if decoded.severity != elem.severity {
 			t.Errorf("Wrong decoded severity: %v. Should be: %v", decoded.severity, elem.severity)
@@ -84,11 +83,10 @@ func TestDecodeSyslogPriority(t *testing.T) {
 	}
 }
 
-
 func TestEncodeSyslogPriority(t *testing.T) {
 
-	for _, elem := range test_priorities {
-		pri := SyslogPiority{severity: elem.severity, facility: elem.facility}
+	for _, elem := range testPriorities {
+		pri := syslogPiority{severity: elem.severity, facility: elem.facility}
 		encoded := encodeSyslogPriority(pri)
 		if encoded != elem.priority {
 			t.Errorf("Wrong encoded priority %v. Should be: %v", encoded, elem.priority)
@@ -96,9 +94,8 @@ func TestEncodeSyslogPriority(t *testing.T) {
 	}
 }
 
-
 func TestParseMessage(t *testing.T) {
-	for _, elem := range test_messages {
+	for _, elem := range testMessages {
 		parsed, err := decodeMessage(elem.raw)
 		if err != nil {
 			t.Errorf("Error while parsing: %q", err)
@@ -127,42 +124,39 @@ func TestParseMessage(t *testing.T) {
 	}
 }
 
-
 func TestEmptyMessage(t *testing.T) {
-	empty_message := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
-	_, err := decodeMessage(empty_message)
-	if err != EmptyMessage {
-		t.Errorf("Should return: %q. Got: %q", EmptyMessage, err)
+	emptyMessage := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
+	_, err := decodeMessage(emptyMessage)
+	if err != errEmptyMessage {
+		t.Errorf("Should return: %q. Got: %q", errEmptyMessage, err)
 	}
 }
-
 
 func TestMessageTooLong(t *testing.T) {
-	msg := RandomString(MAX_MGS_LEN)
+	msg := RandomString(maxMsgLen)
 	_, err := decodeMessage(msg)
-	if err != MessageTooLong {
-		t.Errorf("Should return: %q. Got: %q", MessageTooLong, err)
+	if err != errMsgTooLong {
+		t.Errorf("Should return: %q. Got: %q", errMsgTooLong, err)
 	}
 }
 
-
 func TestMessageSorting(t *testing.T) {
-	unsorted := []SyslogMessage {
+	unsorted := []syslogMessage{
 		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
 		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
 	}
-	sorted := []SyslogMessage {
+	sorted := []syslogMessage{
 		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
 		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
 	}
 
-	sort.Sort(ByUnixTimeStamp(unsorted))
+	sort.Sort(byUnixTimeStamp(unsorted))
 
 	for i, elem := range sorted {
-		unsorted_unix := unsorted[i].timestamp.Unix()
-		sorted_unix := elem.timestamp.Unix()
-		if  unsorted_unix != sorted_unix  {
-			t.Errorf("Timestamps should be equal. Unsorted: %v Sorted: %v", unsorted_unix, sorted_unix)
+		unsortedUnix := unsorted[i].timestamp.Unix()
+		sortedUnix := elem.timestamp.Unix()
+		if unsortedUnix != sortedUnix {
+			t.Errorf("Timestamps should be equal. Unsorted: %v Sorted: %v", unsortedUnix, sortedUnix)
 		}
 	}
 }
