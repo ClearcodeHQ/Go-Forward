@@ -12,6 +12,7 @@ go:
 before_install:
 - go get github.com/golang/lint/golint
 - go get golang.org/x/tools/cmd/goimports
+- go get github.com/mattn/goveralls
 
 script:
 - go vet ./...
@@ -19,3 +20,6 @@ script:
 - go test -v ./...
 - ./.travis.gofmt.sh
 - ./.travis.goimports.sh
+
+after_success:
+- $HOME/gopath/bin/goveralls -service=travis-ci
