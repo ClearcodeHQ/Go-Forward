@@ -28,7 +28,9 @@ const (
 	// None of the log events in the batch can be older than 14 days.
 	eventPastTimedelta = 14 * 24 * time.Hour
 	// DescribeLogStreams transactions/second.
-	describelogstreamsTps = 5
+	describelogstreamsTPS = 5
+	// PutLogEvents 5 requests/second/log stream.
+	putLogEventsRPS = 5
 )
 
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
