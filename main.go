@@ -28,7 +28,7 @@ func receiveEvents(conn *net.UDPConn, c chan syslogMessage) {
 		}
 		parsed, err := decodeMessage(string(buf[0:n]))
 		if err == nil {
-			c <-parsed
+			c <- parsed
 		} else {
 			fmt.Println(err)
 		}
