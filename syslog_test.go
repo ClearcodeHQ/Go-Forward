@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 	"testing"
@@ -158,5 +159,22 @@ func TestMessageSorting(t *testing.T) {
 		if unsortedUnix != sortedUnix {
 			t.Errorf("Timestamps should be equal. Unsorted: %v Sorted: %v", unsortedUnix, sortedUnix)
 		}
+	}
+}
+
+func TestSyslogMEssageString(t *testing.T) {
+	m := syslogMessage{
+		severity:  logInfo,
+		facility:  logAuthpriv,
+		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 970210000, time.UTC),
+		hostname:  "debian",
+		syslogtag: "sudo:",
+		message:   "pam_unix(sudo:session): session closed for user root",
+	}
+	formated := fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
+		m.facility, m.severity, m.timestamp, m.hostname, m.syslogtag, m.message)
+
+	if result := m.String(); result != formated {
+		t.Errorf("Badly formated message: %q Got: %q", formated, result)
 	}
 }
