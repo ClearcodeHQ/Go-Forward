@@ -24,6 +24,7 @@ type syslogMessage struct {
 	hostname  string
 }
 
+// Used to sort by unix timestamp in ascending order.
 type byUnixTimeStamp []syslogMessage
 
 const maxMsgLen = 2048
