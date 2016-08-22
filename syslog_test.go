@@ -84,17 +84,6 @@ func TestDecodeSyslogPriority(t *testing.T) {
 	}
 }
 
-func TestEncodeSyslogPriority(t *testing.T) {
-
-	for _, elem := range testPriorities {
-		pri := syslogPiority{severity: elem.severity, facility: elem.facility}
-		encoded := encodeSyslogPriority(pri)
-		if encoded != elem.priority {
-			t.Errorf("Wrong encoded priority %v. Should be: %v", encoded, elem.priority)
-		}
-	}
-}
-
 func TestParseMessage(t *testing.T) {
 	for _, elem := range testMessages {
 		parsed, err := decodeMessage(elem.raw)

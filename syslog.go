@@ -123,10 +123,6 @@ func decodeSyslogPriority(priority uint8) syslogPiority {
 	return syslogPiority{facility: facility(priority / 8), severity: severity(priority % 8)}
 }
 
-func encodeSyslogPriority(priority syslogPiority) uint8 {
-	return uint8(priority.facility*8) + uint8(priority.severity)
-}
-
 func decodeMessage(msg string) (syslogMessage, error) {
 	var priority uint8
 	var timestamp string
