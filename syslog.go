@@ -9,11 +9,7 @@ import (
 
 type severity uint8
 type facility uint8
-
-type syslogPiority struct {
-	facility facility
-	severity severity
-}
+type priority uint8
 
 type syslogMessage struct {
 	facility  facility
@@ -110,6 +106,10 @@ var facilityMap = map[facility]string{
 var errEmptyMessage = errors.New("Message is empty.")
 var errMsgTooLong = fmt.Errorf("Message is too big. Max allowed %d", maxMsgLen)
 
+func (p priority) decode() (facility, severity) {
+	return facility(p / 8), severity(p % 8)
+}
+
 func (s syslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
@@ -119,12 +119,8 @@ func (m byUnixTimeStamp) Len() int           { return len(m) }
 func (m byUnixTimeStamp) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m byUnixTimeStamp) Less(i, j int) bool { return m[i].timestamp.Unix() < m[j].timestamp.Unix() }
 
-func decodeSyslogPriority(priority uint8) syslogPiority {
-	return syslogPiority{facility: facility(priority / 8), severity: severity(priority % 8)}
-}
-
 func decodeMessage(msg string) (syslogMessage, error) {
-	var priority uint8
+	var pri priority
 	var timestamp string
 	if len(msg) >= maxMsgLen {
 		return syslogMessage{}, errMsgTooLong
@@ -136,7 +132,7 @@ func decodeMessage(msg string) (syslogMessage, error) {
 		return syslogMessage{}, errEmptyMessage
 	}
 
-	_, err := fmt.Sscanf(header, "<%d>%s", &priority, &timestamp)
+	_, err := fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
 	if err != nil {
 		return syslogMessage{}, err
 	}
@@ -146,11 +142,11 @@ func decodeMessage(msg string) (syslogMessage, error) {
 		return syslogMessage{}, err
 	}
 
-	syspri := decodeSyslogPriority(priority)
+	fac, sev := priority.decode(pri)
 
 	return syslogMessage{
-		facility:  syspri.facility,
-		severity:  syspri.severity,
+		facility:  fac,
+		severity:  sev,
 		message:   msg,
 		timestamp: ts,
 		syslogtag: tag,

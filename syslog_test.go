@@ -9,7 +9,7 @@ import (
 )
 
 type TestSyslogPriority struct {
-	priority uint8
+	priority priority
 	severity severity
 	facility facility
 }
@@ -74,12 +74,12 @@ var testMessages = []TestMessage{
 func TestDecodeSyslogPriority(t *testing.T) {
 
 	for _, elem := range testPriorities {
-		decoded := decodeSyslogPriority(elem.priority)
-		if decoded.severity != elem.severity {
-			t.Errorf("Wrong decoded severity: %v. Should be: %v", decoded.severity, elem.severity)
+		facility, severity := priority.decode(elem.priority)
+		if severity != elem.severity {
+			t.Errorf("Wrong decoded severity: %v. Should be: %v", severity, elem.severity)
 		}
-		if decoded.facility != elem.facility {
-			t.Errorf("Wrong decoded facility: %v. Should be: %v", decoded.facility, elem.facility)
+		if facility != elem.facility {
+			t.Errorf("Wrong decoded facility: %v. Should be: %v", facility, elem.facility)
 		}
 	}
 }
