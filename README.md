@@ -4,7 +4,7 @@
 This program's purpose is to forward all logs received from a unix socket and forward them to cloudwatch logs.
 
 Projects to look at:
-https://github.com/bradgignac/logspout-cloudwatch
-https://github.com/ejholmes/cloudwatch
-https://github.com/saymedia/journald-cloudwatch-logs
-https://github.com/mdsol/logspout-cloudwatch
+* https://github.com/bradgignac/logspout-cloudwatch
+* https://github.com/ejholmes/cloudwatch
+* https://github.com/saymedia/journald-cloudwatch-logs
+* https://github.com/mdsol/logspout-cloudwatch
