@@ -106,6 +106,20 @@ var facilityMap = map[facility]string{
 var errEmptyMessage = errors.New("Message is empty.")
 var errMsgTooLong = fmt.Errorf("Message is too big. Max allowed %d", maxMsgLen)
 
+func (s severity) String() string {
+	if val, ok := severityMap[s]; ok {
+		return val
+	}
+	return "UNKNOWN"
+}
+
+func (f facility) String() string {
+	if val, ok := facilityMap[f]; ok {
+		return val
+	}
+	return "UNKNOWN"
+}
+
 func (p priority) decode() (facility, severity) {
 	return facility(p / 8), severity(p % 8)
 }

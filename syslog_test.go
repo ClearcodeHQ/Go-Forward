@@ -71,6 +71,36 @@ var testMessages = []TestMessage{
 	},
 }
 
+func TestSeverityStringUnknown(t *testing.T) {
+	sev := severity(254)
+	if str := sev.String(); str != "UNKNOWN" {
+		t.Errorf("Should return UNKNOWN. Got: %q", str)
+	}
+}
+
+func TestFacilityStringUnknown(t *testing.T) {
+	fac := facility(254)
+	if str := fac.String(); str != "UNKNOWN" {
+		t.Errorf("Should return UNKNOWN. Got: %q", str)
+	}
+}
+
+func TestSeverityString(t *testing.T) {
+	for sev, val := range severityMap {
+		if str := sev.String(); str != val {
+			t.Errorf("Should return %q. Got: %q", val, str)
+		}
+	}
+}
+
+func TestFacilityString(t *testing.T) {
+	for fac, val := range facilityMap {
+		if str := fac.String(); str != val {
+			t.Errorf("Should return %q. Got: %q", val, str)
+		}
+	}
+}
+
 func TestDecodeSyslogPriority(t *testing.T) {
 
 	for _, elem := range testPriorities {
