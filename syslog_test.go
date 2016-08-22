@@ -190,7 +190,7 @@ func TestSyslogMEssageString(t *testing.T) {
 		syslogtag: "sudo:",
 		message:   "pam_unix(sudo:session): session closed for user root",
 	}
-	formated := fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
+	formated := fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
 		m.facility, m.severity, m.timestamp, m.hostname, m.syslogtag, m.message)
 
 	if result := m.String(); result != formated {

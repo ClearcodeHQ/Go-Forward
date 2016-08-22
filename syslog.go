@@ -125,7 +125,7 @@ func (p priority) decode() (facility, severity) {
 }
 
 func (s syslogMessage) String() string {
-	return fmt.Sprintf("FACILITY=%d SEVERITY=%d TIMESTAMP=%q HOSTNAME=%q TAG=%q MESSAGE=%q",
+	return fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
 
