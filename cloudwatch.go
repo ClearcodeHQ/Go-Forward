@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
@@ -36,6 +35,8 @@ const (
 type logEvent struct {
 	msg       *syslogMessage
 	formatted string
+	group     string
+	stream    string
 }
 
 type messageBatch []logEvent
@@ -62,10 +63,7 @@ func (m messageBatch) Less(i, j int) bool { return m[i].msg.timestamp.Unix() < m
 
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
 
-// Return all log groups in a given region.
-func getLogGroups(region string) (groups []string) {
-	svc := cloudwatchlogs.New(session.New(), aws.NewConfig().WithRegion(region))
-
+func getLogGroups(svc *cloudwatchlogs.CloudWatchLogs) (groups []string) {
 	err := svc.DescribeLogGroupsPages(params,
 		func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
 			groups = append(groups, getGroupNames(page)...)
