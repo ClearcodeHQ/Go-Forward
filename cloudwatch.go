@@ -51,9 +51,9 @@ func (m messageBatch) size() (size int) {
 // Calculate timespan for events.
 // !!!! This functions assumes that batch is already sorted by unix timestamp in ascending order.
 func (m messageBatch) timeSpan() time.Duration {
-	max := m[len(m)-1].msg.timestamp
-	min := m[0].msg.timestamp
-	return max.Sub(min)
+	newest := m[len(m)-1].msg.timestamp
+	oldest := m[0].msg.timestamp
+	return newest.Sub(oldest)
 }
 
 func (m messageBatch) Len() int           { return len(m) }
