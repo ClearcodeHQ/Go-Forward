@@ -57,9 +57,17 @@ func (m messageBatch) timeSpan() time.Duration {
 	return newest.Sub(oldest)
 }
 
-func (m messageBatch) Len() int           { return len(m) }
-func (m messageBatch) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m messageBatch) Less(i, j int) bool { return m[i].msg.timestamp.Unix() < m[j].msg.timestamp.Unix() }
+func (m messageBatch) Len() int {
+	return len(m)
+}
+
+func (m messageBatch) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m messageBatch) Less(i, j int) bool {
+	return m[i].msg.timestamp.Unix() < m[j].msg.timestamp.Unix()
+}
 
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
 

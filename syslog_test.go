@@ -159,8 +159,7 @@ func TestMessageTooLong(t *testing.T) {
 	}
 }
 
-
-func TestSyslogMEssageString(t *testing.T) {
+func TestSyslogMessageString(t *testing.T) {
 	m := syslogMessage{
 		severity:  logInfo,
 		facility:  logAuthpriv,
