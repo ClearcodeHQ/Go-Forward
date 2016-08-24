@@ -43,3 +43,18 @@ func TestBatchTimeSpan(t *testing.T) {
 		t.Errorf("Time duration shoud be equal. Result: %v Expected: %v", result, expected)
 	}
 }
+
+func TestBatchSize(t *testing.T) {
+	events := messageBatch{
+		logEvent{msg: &syslogMessage{}, formatted: "123456"},
+		logEvent{msg: &syslogMessage{}, formatted: "12345"},
+		logEvent{msg: &syslogMessage{}, formatted: "123"},
+	}
+
+	result := events.size()
+	expected := (6+5+3) + (eventSizeOverhead * 3)
+
+	if result != expected {
+		t.Errorf("Batch size shoud be %v. Got: %v", expected, result)
+	}
+}
