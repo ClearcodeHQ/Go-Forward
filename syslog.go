@@ -20,9 +20,6 @@ type syslogMessage struct {
 	hostname  string
 }
 
-// Used to sort by unix timestamp in ascending order.
-type byUnixTimeStamp []syslogMessage
-
 const maxMsgLen = 2048
 
 // From /usr/include/sys/syslog.h.
@@ -128,10 +125,6 @@ func (s syslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
-
-func (m byUnixTimeStamp) Len() int           { return len(m) }
-func (m byUnixTimeStamp) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m byUnixTimeStamp) Less(i, j int) bool { return m[i].timestamp.Unix() < m[j].timestamp.Unix() }
 
 func decodeMessage(msg string) (syslogMessage, error) {
 	var pri priority

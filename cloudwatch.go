@@ -33,6 +33,33 @@ const (
 	putLogEventsRPS = 5
 )
 
+type logEvent struct {
+	msg       *syslogMessage
+	formatted string
+}
+
+type messageBatch []logEvent
+
+// Calculate batch size including each event overhead.
+func (m messageBatch) size() (size int) {
+	for _, elem := range m {
+		size += len(elem.formatted) + eventSizeOverhead
+	}
+	return
+}
+
+// Calculate timespan for events.
+// !!!! This functions assumes that batch is already sorted by unix timestamp in ascending order.
+func (m messageBatch) timeSpan() time.Duration {
+	max := m[len(m)-1].msg.timestamp
+	min := m[0].msg.timestamp
+	return max.Sub(min)
+}
+
+func (m messageBatch) Len() int           { return len(m) }
+func (m messageBatch) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m messageBatch) Less(i, j int) bool { return m[i].msg.timestamp.Unix() < m[j].msg.timestamp.Unix() }
+
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
 
 // Return all log groups in a given region.

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"sort"
 	"testing"
 	"time"
 )
@@ -160,26 +159,6 @@ func TestMessageTooLong(t *testing.T) {
 	}
 }
 
-func TestMessageSorting(t *testing.T) {
-	unsorted := []syslogMessage{
-		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
-		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
-	}
-	sorted := []syslogMessage{
-		{timestamp: time.Date(2016, 7, 23, 12, 48, 11, 969683000, time.UTC)},
-		{timestamp: time.Date(2016, 7, 23, 12, 48, 16, 969683000, time.UTC)},
-	}
-
-	sort.Sort(byUnixTimeStamp(unsorted))
-
-	for i, elem := range sorted {
-		unsortedUnix := unsorted[i].timestamp.Unix()
-		sortedUnix := elem.timestamp.Unix()
-		if unsortedUnix != sortedUnix {
-			t.Errorf("Timestamps should be equal. Unsorted: %v Sorted: %v", unsortedUnix, sortedUnix)
-		}
-	}
-}
 
 func TestSyslogMEssageString(t *testing.T) {
 	m := syslogMessage{
