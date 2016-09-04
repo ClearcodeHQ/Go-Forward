@@ -14,7 +14,7 @@ func TestMessageSorting(t *testing.T) {
 
 	sort.Sort(unsorted)
 
-	for i, elem := range []int64{1,2} {
+	for i, elem := range []int64{1, 2} {
 		if unsorted[i].timestamp != elem {
 			t.Errorf("Timestamps should be equal. Got: %v Expected: %v", unsorted[i].timestamp, elem)
 		}

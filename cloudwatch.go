@@ -33,7 +33,7 @@ const (
 )
 
 type logEvent struct {
-	msg       string
+	msg string
 	// Timestamp in milliseconds
 	timestamp int64
 }
@@ -53,7 +53,7 @@ func (m messageBatch) size() (size int) {
 func (m messageBatch) timeSpan() time.Duration {
 	newest := m[len(m)-1].timestamp
 	oldest := m[0].timestamp
-	return time.Duration(newest - oldest) * time.Millisecond
+	return time.Duration(newest-oldest) * time.Millisecond
 }
 
 func (m messageBatch) Len() int {
