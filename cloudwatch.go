@@ -67,31 +67,3 @@ func (m messageBatch) Swap(i, j int) {
 func (m messageBatch) Less(i, j int) bool {
 	return m[i].timestamp < m[j].timestamp
 }
-
-var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
-
-func getLogGroups(svc *cloudwatchlogs.CloudWatchLogs) (groups []string) {
-	err := svc.DescribeLogGroupsPages(params,
-		func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
-			groups = append(groups, getGroupNames(page)...)
-			return !lastPage
-		})
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		// awsErr  := err.(awserr.Error)
-		// Generic AWS Error with Code, Message, and original error (if any)
-		// fmt.Println(awsErr.Code(), awsErr.Message())
-		panic(err)
-	}
-	return
-}
-
-// Return all log group names from DescribeLogGroupsOutput.
-func getGroupNames(page *cloudwatchlogs.DescribeLogGroupsOutput) (names []string) {
-	for _, val := range page.LogGroups {
-		names = append(names, *val.LogGroupName)
-	}
-	return
-}
