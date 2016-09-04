@@ -33,10 +33,9 @@ const (
 )
 
 type logEvent struct {
-	msg       *syslogMessage
-	formatted string
-	group     string
-	stream    string
+	msg       string
+	// Timestamp in milliseconds
+	timestamp int64
 }
 
 type messageBatch []logEvent
@@ -44,7 +43,7 @@ type messageBatch []logEvent
 // Calculate batch size including each event overhead.
 func (m messageBatch) size() (size int) {
 	for _, elem := range m {
-		size += len(elem.formatted) + eventSizeOverhead
+		size += len(elem.msg) + eventSizeOverhead
 	}
 	return
 }
@@ -52,9 +51,9 @@ func (m messageBatch) size() (size int) {
 // Calculate timespan for events.
 // !!!! This functions assumes that batch is already sorted by unix timestamp in ascending order.
 func (m messageBatch) timeSpan() time.Duration {
-	newest := m[len(m)-1].msg.timestamp
-	oldest := m[0].msg.timestamp
-	return newest.Sub(oldest)
+	newest := m[len(m)-1].timestamp
+	oldest := m[0].timestamp
+	return time.Duration(newest - oldest) * time.Millisecond
 }
 
 func (m messageBatch) Len() int {
@@ -66,7 +65,7 @@ func (m messageBatch) Swap(i, j int) {
 }
 
 func (m messageBatch) Less(i, j int) bool {
-	return m[i].msg.timestamp.Unix() < m[j].msg.timestamp.Unix()
+	return m[i].timestamp < m[j].timestamp
 }
 
 var params = &cloudwatchlogs.DescribeLogGroupsInput{Limit: aws.Int64(50)}
