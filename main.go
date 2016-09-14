@@ -38,7 +38,7 @@ func main() {
 	go sendEvents(dst, pendingChan)
 	for {
 		select {
-		case <-time.Tick(time.Second / putLogEventsRPS):
+		case <-time.Tick(putLogEventsDelay):
 			/*
 				Sequence token must change in order to send next messages,
 				otherwise DataAlreadyAcceptedException is returned.

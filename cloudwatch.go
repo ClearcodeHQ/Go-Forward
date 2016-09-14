@@ -27,9 +27,9 @@ const (
 	// None of the log events in the batch can be older than 14 days.
 	eventPastTimeDelta = 14 * 24 * time.Hour
 	// DescribeLogStreams transactions/second.
-	describeLogstreamsTPS = 5
+	describeLogstreamsDelay = 200 * time.Millisecond
 	// PutLogEvents 5 requests/second/log stream.
-	putLogEventsRPS = 5
+	putLogEventsDelay = 200 * time.Millisecond
 )
 
 type logEvent struct {
