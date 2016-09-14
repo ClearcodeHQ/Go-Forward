@@ -35,10 +35,13 @@ func main() {
 	msgChan := convertEvents(receiveEvents(conn))
 	var messages, pending messageBatch
 	pendingChan := make(chan messageBatch)
-	go sendEvents(dst, pendingChan)
+	canIHazSendChan := make(chan bool)
+	exitChan := make(chan bool)
+	go sendEvents(dst, pendingChan, canIHazSendChan)
+
 	for {
 		select {
-		case <-time.Tick(putLogEventsDelay):
+		case canIHazSendChan:
 			/*
 				Sequence token must change in order to send next messages,
 				otherwise DataAlreadyAcceptedException is returned.
@@ -54,11 +57,16 @@ func main() {
 	}
 }
 
-func sendEvents(dst Destination, mchan chan messageBatch) {
+func sendEvents(dst Destination, mchan chan messageBatch, successChan chan bool) {
 	for batch := range mchan {
 		if len(batch) > 0 {
+			// what in the case of error? Maybe we should add a some kind of retry?
 			err := dst.upload(batch)
 			fmt.Println(err)
+			<-time.Tick(putLogEventsDelay)
+			if err == nil {
+				successChan <- true
+			}
 		}
 	}
 }
