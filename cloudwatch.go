@@ -2,6 +2,9 @@ package main
 
 import (
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
 /*
@@ -63,4 +66,88 @@ func (m messageBatch) Swap(i, j int) {
 
 func (m messageBatch) Less(i, j int) bool {
 	return m[i].timestamp < m[j].timestamp
+}
+
+type Destination struct {
+	stream string
+	group  string
+	token  string
+	svc    *cloudwatchlogs.CloudWatchLogs
+}
+
+// Put log events and update sequence token.
+// Possible errors http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
+func (dst *Destination) upload(events messageBatch) error {
+	logevents := make([]*cloudwatchlogs.InputLogEvent, 0, len(events))
+	for _, elem := range events {
+		logevents = append(logevents, &cloudwatchlogs.InputLogEvent{
+			Message:   aws.String(elem.msg),
+			Timestamp: aws.Int64(elem.timestamp),
+		})
+	}
+	params := &cloudwatchlogs.PutLogEventsInput{
+		LogEvents:     logevents,
+		LogGroupName:  aws.String(dst.group),
+		LogStreamName: aws.String(dst.stream),
+		SequenceToken: aws.String(dst.token),
+	}
+	resp, err := dst.svc.PutLogEvents(params)
+	if err == nil {
+		// Assign value (not pointer) so that response may be garbage collected.
+		dst.token = *resp.NextSequenceToken
+	}
+	return err
+}
+
+func (dst *Destination) setToken() error {
+	params := &cloudwatchlogs.DescribeLogStreamsInput{
+		LogGroupName:        aws.String(dst.group),
+		LogStreamNamePrefix: aws.String(dst.stream),
+	}
+
+	return dst.svc.DescribeLogStreamsPages(params,
+		func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
+			return !findToken(dst, page)
+		})
+}
+
+// Create log group and stream. If an error is returned, PutLogEvents can not succeed.
+func (dst *Destination) create() (err error) {
+	// LimitExceededException
+	err = dst.createGroup()
+	err = dst.createStream()
+	return
+}
+
+func (dst *Destination) createGroup() error {
+	params := &cloudwatchlogs.CreateLogGroupInput{
+		LogGroupName: aws.String(dst.group),
+	}
+	_, err := dst.svc.CreateLogGroup(params)
+	// ResourceAlreadyExistsException
+	// InvalidParameterException when name is invalid
+	return err
+}
+
+func (dst *Destination) createStream() error {
+	params := &cloudwatchlogs.CreateLogStreamInput{
+		LogGroupName:  aws.String(dst.group),
+		LogStreamName: aws.String(dst.stream),
+	}
+	_, err := dst.svc.CreateLogStream(params)
+	// ResourceAlreadyExistsException
+	// ResourceNotFoundException when there is no group
+	// InvalidParameterException when name is invalid
+	return err
+}
+
+func findToken(dst *Destination, page *cloudwatchlogs.DescribeLogStreamsOutput) bool {
+	for _, row := range page.LogStreams {
+		if dst.stream == *row.LogStreamName {
+			// Assign value (not pointer) so that page may be garbage collected.
+			dst.token = *row.UploadSequenceToken
+			return true
+		}
+	}
+	return false
 }
