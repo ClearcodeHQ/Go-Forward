@@ -32,33 +32,31 @@ func main() {
 	}
 	dst.setToken()
 
-	msgChan := convertEvents(receiveEvents(conn))
+	received := convertEvents(receiveEvents(conn))
 	var messages, pending messageBatch
-	pendingChan := make(chan messageBatch)
-	go sendEvents(dst, pendingChan)
+	var uploadDone chan error
 	for {
 		select {
+		case event := <-received:
+			messages = append(messages, event)
+		case result := <-uploadDone:
+			uploadDone = nil
+			fmt.Println("Upload result", result)
 		case <-time.Tick(putLogEventsDelay):
 			/*
 				Sequence token must change in order to send next messages,
 				otherwise DataAlreadyAcceptedException is returned.
 				Only one upload can proceed / tick / stream.
 			*/
-			i := 100
-			pending, messages = messages[:i], messages[i:]
-			fmt.Println(len(messages), cap(messages))
-		case event := <-msgChan:
-			messages = append(messages, event)
-		case pendingChan <- pending:
-		}
-	}
-}
-
-func sendEvents(dst Destination, mchan chan messageBatch) {
-	for batch := range mchan {
-		if len(batch) > 0 {
-			err := dst.upload(batch)
-			fmt.Println(err)
+			length := len(messages)
+			if length > 0 && uploadDone == nil {
+				pending, messages = messages[:numEvents(length)], messages[numEvents(length):]
+				uploadDone = make(chan error)
+				fmt.Printf("Sending %d messages.\n", length)
+				go func() {
+					uploadDone <- dst.upload(pending)
+				}()
+			}
 		}
 	}
 }

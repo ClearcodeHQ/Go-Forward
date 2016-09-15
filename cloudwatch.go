@@ -68,6 +68,14 @@ func (m messageBatch) Less(i, j int) bool {
 	return m[i].timestamp < m[j].timestamp
 }
 
+// Calculate batch size based on ammount of received events.
+func numEvents(length int) int {
+	if length <= maxBatchEvents {
+		return length
+	}
+	return maxBatchEvents
+}
+
 type Destination struct {
 	stream string
 	group  string
