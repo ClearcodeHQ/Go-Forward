@@ -101,7 +101,7 @@ var facilityMap = map[facility]string{
 }
 
 var errEmptyMessage = errors.New("Message is empty.")
-var errMsgTooLong = fmt.Errorf("Message is too big. Max allowed %d", maxMsgLen)
+var errUnknownMessageFormat = errors.New("Unknown syslog message format.")
 
 func (s severity) String() string {
 	if val, ok := severityMap[s]; ok {
@@ -126,37 +126,41 @@ func (s syslogMessage) String() string {
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
 
-func decodeMessage(msg string) (syslogMessage, error) {
+func decodeMessage(msg string) (parsed syslogMessage, err error) {
 	var pri priority
 	var timestamp string
-	if len(msg) >= maxMsgLen {
-		return syslogMessage{}, errMsgTooLong
-	}
+	var ts time.Time
 	splited := strings.SplitN(msg, " ", 4)
+	if len(splited) != 4 {
+		err = errUnknownMessageFormat
+		return
+	}
 	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
 	msg = strings.Trim(msg, " \n\t")
 	if msg == "" {
-		return syslogMessage{}, errEmptyMessage
+		err = errEmptyMessage
+		return
 	}
 
-	_, err := fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
+	_, err = fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
 	if err != nil {
-		return syslogMessage{}, err
+		return
 	}
 
-	ts, err := time.Parse(time.RFC3339, timestamp)
+	ts, err = time.Parse(time.RFC3339, timestamp)
 	if err != nil {
-		return syslogMessage{}, err
+		return
 	}
 
-	fac, sev := priority.decode(pri)
+	fac, sev := pri.decode()
 
-	return syslogMessage{
+	parsed = syslogMessage{
 		facility:  fac,
 		severity:  sev,
 		message:   msg,
 		timestamp: ts,
 		syslogtag: tag,
 		hostname:  hname,
-	}, nil
+	}
+	return
 }

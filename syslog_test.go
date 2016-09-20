@@ -151,11 +151,11 @@ func TestEmptyMessage(t *testing.T) {
 	}
 }
 
-func TestMessageTooLong(t *testing.T) {
+func TestUnknownMessage(t *testing.T) {
 	msg := RandomString(maxMsgLen)
 	_, err := decodeMessage(msg)
-	if err != errMsgTooLong {
-		t.Errorf("Should return: %q. Got: %q", errMsgTooLong, err)
+	if err != errUnknownMessageFormat {
+		t.Errorf("Should return: %q. Got: %q", errUnknownMessageFormat, err)
 	}
 }
 
