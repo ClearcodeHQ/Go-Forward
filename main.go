@@ -65,7 +65,7 @@ func convertEvents(m <-chan string) <-chan logEvent {
 	out := make(chan logEvent)
 	go func() {
 		for msg := range m {
-			parsed, err := decodeMessage(msg)
+			parsed, err := parseRFC3164(msg)
 			if err == nil {
 				out <- logEvent{
 					msg: fmt.Sprintf("%s %s %s %s %s", parsed.facility, parsed.severity, parsed.hostname, parsed.syslogtag, parsed.message),

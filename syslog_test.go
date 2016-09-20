@@ -115,7 +115,7 @@ func TestDecodeSyslogPriority(t *testing.T) {
 
 func TestParseMessage(t *testing.T) {
 	for _, elem := range testMessages {
-		parsed, err := decodeMessage(elem.raw)
+		parsed, err := parseRFC3164(elem.raw)
 		if err != nil {
 			t.Errorf("Error while parsing: %q", err)
 		}
@@ -145,7 +145,7 @@ func TestParseMessage(t *testing.T) {
 
 func TestEmptyMessage(t *testing.T) {
 	emptyMessage := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
-	_, err := decodeMessage(emptyMessage)
+	_, err := parseRFC3164(emptyMessage)
 	if err != errEmptyMessage {
 		t.Errorf("Should return: %q. Got: %q", errEmptyMessage, err)
 	}
@@ -153,7 +153,7 @@ func TestEmptyMessage(t *testing.T) {
 
 func TestUnknownMessage(t *testing.T) {
 	msg := RandomString(maxMsgLen)
-	_, err := decodeMessage(msg)
+	_, err := parseRFC3164(msg)
 	if err != errUnknownMessageFormat {
 		t.Errorf("Should return: %q. Got: %q", errUnknownMessageFormat, err)
 	}

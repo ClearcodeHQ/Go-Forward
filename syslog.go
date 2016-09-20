@@ -126,7 +126,7 @@ func (s syslogMessage) String() string {
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
 }
 
-func decodeMessage(msg string) (parsed syslogMessage, err error) {
+func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 	var pri priority
 	var timestamp string
 	var ts time.Time
