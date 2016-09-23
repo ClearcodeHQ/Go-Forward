@@ -17,11 +17,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	out := rec.Receive()
-
-	sess, _ := session.NewSessionWithOptions(session.Options{
+	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})
+	if err != nil {
+		panic(err)
+	}
+
 	dst := Destination{
 		group:  "lkostka",
 		stream: "test",
@@ -30,7 +32,7 @@ func main() {
 	dst.setToken()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	received := convertEvents(out)
+	received := convertEvents(rec.Receive())
 	var messages, pending messageBatch
 	var uploadDone chan error
 	for {
