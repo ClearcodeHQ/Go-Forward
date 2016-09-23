@@ -41,6 +41,14 @@ func TestBatchTimeSpan(t *testing.T) {
 	}
 }
 
+func TestEventSize(t *testing.T) {
+	event := logEvent{msg: "123", timestamp: 123}
+	expected := 3 + eventSizeOverhead
+	if event.size() != expected {
+		t.Errorf("Event size shoud be %v. Got: %v", expected, event.size())
+	}
+}
+
 func TestBatchSize(t *testing.T) {
 	events := messageBatch{
 		logEvent{msg: "123456"},

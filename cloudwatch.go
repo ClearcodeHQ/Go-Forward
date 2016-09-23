@@ -38,12 +38,16 @@ type logEvent struct {
 	timestamp int64
 }
 
+func (e *logEvent) size() int {
+	return len(e.msg) + eventSizeOverhead
+}
+
 type messageBatch []logEvent
 
 // Calculate batch size including each event overhead.
 func (m messageBatch) size() (size int) {
 	for _, elem := range m {
-		size += len(elem.msg) + eventSizeOverhead
+		size += elem.size()
 	}
 	return
 }
