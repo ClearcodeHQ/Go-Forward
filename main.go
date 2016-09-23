@@ -2,25 +2,22 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
-const listenAddress = "localhost:5514"
+const listenAddress = "udp://localhost:5514"
 
 func main() {
-	listenAddr, err := net.ResolveUDPAddr("udp", listenAddress)
+	rec, err := newReceiver(listenAddress)
 	if err != nil {
 		panic(err)
 	}
-	conn, err := net.ListenUDP("udp", listenAddr)
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
+	out := rec.Receive()
 
 	sess, _ := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -31,8 +28,9 @@ func main() {
 		svc:    cloudwatchlogs.New(sess),
 	}
 	dst.setToken()
-
-	received := convertEvents(receiveEvents(conn))
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	received := convertEvents(out)
 	var messages, pending messageBatch
 	var uploadDone chan error
 	for {
@@ -57,6 +55,9 @@ func main() {
 					uploadDone <- dst.upload(pending)
 				}()
 			}
+		case <-quit:
+			rec.Close()
+			return
 		}
 	}
 }
@@ -73,21 +74,6 @@ func convertEvents(m <-chan string) <-chan logEvent {
 					timestamp: parsed.timestamp.Unix() * 1000,
 				}
 			}
-		}
-	}()
-	return out
-}
-
-func receiveEvents(conn *net.UDPConn) <-chan string {
-	out := make(chan string, maxBatchEvents)
-	go func() {
-		var buf [maxEventSize]byte
-		for {
-			n, err := conn.Read(buf[0:])
-			if err != nil {
-				panic(err)
-			}
-			out <- string(buf[0:n])
 		}
 	}()
 	return out
