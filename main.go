@@ -102,21 +102,23 @@ func convertEvents(mapping destMap) <-chan destMsg {
 
 	for rec, dst := range mapping {
 		rout := rec.Receive()
-		go func(m <-chan string, d *Destination) {
-			for msg := range m {
-				parsed, err := parseRFC3164(msg)
-				if err == nil {
-					out <- destMsg{
-						dst: d,
-						event: logEvent{
-							msg: fmt.Sprintf("%s %s %s %s %s", parsed.facility, parsed.severity, parsed.hostname, parsed.syslogtag, parsed.message),
-							// Timestamp must be in milliseconds
-							timestamp: parsed.timestamp.Unix() * 1000,
-						},
-					}
-				}
-			}
-		}(rout, dst)
+		go recToDst(rout, dst, out)
 	}
 	return out
+}
+
+func recToDst(m <-chan string, dst *Destination, out chan<- destMsg) {
+	for msg := range m {
+		parsed, err := parseRFC3164(msg)
+		if err == nil {
+			out <- destMsg{
+				dst: dst,
+				event: logEvent{
+					msg: fmt.Sprintf("%s %s %s %s %s", parsed.facility, parsed.severity, parsed.hostname, parsed.syslogtag, parsed.message),
+					// Timestamp must be in milliseconds
+					timestamp: parsed.timestamp.Unix() * 1000,
+				},
+			}
+		}
+	}
 }
