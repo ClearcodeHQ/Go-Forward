@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
@@ -162,4 +163,14 @@ func findToken(dst *Destination, page *cloudwatchlogs.DescribeLogStreamsOutput) 
 		}
 	}
 	return false
+}
+
+func cwlogsSession() *cloudwatchlogs.CloudWatchLogs {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return cloudwatchlogs.New(sess)
 }
