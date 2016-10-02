@@ -102,8 +102,7 @@ func convertEvents(mapping destMap) <-chan destMsg {
 
 func recToDst(m <-chan string, dst *destination, out chan<- destMsg) {
 	for msg := range m {
-		parsed, err := parseRFC3164(msg)
-		if err == nil {
+		if parsed, err := parseRFC3164(msg); err == nil {
 			out <- destMsg{
 				dst: dst,
 				event: logEvent{
