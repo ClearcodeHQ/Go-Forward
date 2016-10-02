@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -16,11 +14,11 @@ type streamBond struct {
 }
 
 type destMsg struct {
-	dst   *Destination
+	dst   *destination
 	event logEvent
 }
 
-type destMap map[receiver]*Destination
+type destMap map[receiver]*destination
 
 func main() {
 	bonds := []streamBond{
@@ -29,10 +27,8 @@ func main() {
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
 	setTokens(mapping)
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
 	received := convertEvents(mapping)
-	destQueue := make(map[*Destination]messageBatch)
+	destQueue := make(map[*destination]messageBatch)
 	var pending messageBatch
 	var uploadDone chan error
 	for {
@@ -60,9 +56,6 @@ func main() {
 					break
 				}
 			}
-		case <-quit:
-			closeAll(mapping)
-			return
 		}
 	}
 }
@@ -74,7 +67,7 @@ func setTokens(dests destMap) {
 }
 
 func closeAll(dests destMap) {
-	for recv, _ := range dests {
+	for recv := range dests {
 		recv.Close()
 	}
 }
@@ -83,7 +76,7 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 	mapping = make(destMap)
 	for _, bond := range bonds {
 		rec, err := newReceiver(bond.url)
-		dst := Destination{
+		dst := destination{
 			group:  bond.group,
 			stream: bond.stream,
 			svc:    svc,
@@ -107,7 +100,7 @@ func convertEvents(mapping destMap) <-chan destMsg {
 	return out
 }
 
-func recToDst(m <-chan string, dst *Destination, out chan<- destMsg) {
+func recToDst(m <-chan string, dst *destination, out chan<- destMsg) {
 	for msg := range m {
 		parsed, err := parseRFC3164(msg)
 		if err == nil {

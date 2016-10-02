@@ -81,7 +81,7 @@ func numEvents(length int) int {
 	return maxBatchEvents
 }
 
-type Destination struct {
+type destination struct {
 	stream string
 	group  string
 	token  string
@@ -90,7 +90,7 @@ type Destination struct {
 
 // Put log events and update sequence token.
 // Possible errors http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
-func (dst *Destination) upload(events messageBatch) error {
+func (dst *destination) upload(events messageBatch) error {
 	logevents := make([]*cloudwatchlogs.InputLogEvent, 0, len(events))
 	for _, elem := range events {
 		logevents = append(logevents, &cloudwatchlogs.InputLogEvent{
@@ -112,7 +112,7 @@ func (dst *Destination) upload(events messageBatch) error {
 	return err
 }
 
-func (dst *Destination) setToken() error {
+func (dst *destination) setToken() error {
 	params := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(dst.group),
 		LogStreamNamePrefix: aws.String(dst.stream),
@@ -125,14 +125,14 @@ func (dst *Destination) setToken() error {
 }
 
 // Create log group and stream. If an error is returned, PutLogEvents can not succeed.
-func (dst *Destination) create() (err error) {
+func (dst *destination) create() (err error) {
 	// LimitExceededException
 	err = dst.createGroup()
 	err = dst.createStream()
 	return
 }
 
-func (dst *Destination) createGroup() error {
+func (dst *destination) createGroup() error {
 	params := &cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(dst.group),
 	}
@@ -142,7 +142,7 @@ func (dst *Destination) createGroup() error {
 	return err
 }
 
-func (dst *Destination) createStream() error {
+func (dst *destination) createStream() error {
 	params := &cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(dst.group),
 		LogStreamName: aws.String(dst.stream),
@@ -154,7 +154,7 @@ func (dst *Destination) createStream() error {
 	return err
 }
 
-func findToken(dst *Destination, page *cloudwatchlogs.DescribeLogStreamsOutput) bool {
+func findToken(dst *destination, page *cloudwatchlogs.DescribeLogStreamsOutput) bool {
 	for _, row := range page.LogStreams {
 		if dst.stream == *row.LogStreamName {
 			// Assign value (not pointer) so that page may be garbage collected.
