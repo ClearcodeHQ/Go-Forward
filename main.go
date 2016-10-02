@@ -95,14 +95,14 @@ func convertEvents(mapping destMap) <-chan destMsg {
 
 	for rec, dst := range mapping {
 		rout := rec.Receive()
-		go recToDst(rout, dst, out)
+		go recToDst(rout, dst, parserFunctions["RFC3164"], out)
 	}
 	return out
 }
 
-func recToDst(in <-chan string, dst *destination, out chan<- destMsg) {
+func recToDst(in <-chan string, dst *destination, parsefn syslogParser, out chan<- destMsg) {
 	for msg := range in {
-		if parsed, err := parseRFC3164(msg); err == nil {
+		if parsed, err := parsefn(msg); err == nil {
 			out <- destMsg{
 				dst: dst,
 				event: logEvent{
