@@ -75,3 +75,10 @@ func TestNumEvents(t *testing.T) {
 		}
 	}
 }
+
+func TestEventValidateTooBig(t *testing.T) {
+	event := logEvent{msg: RandomString(maxEventSize + 1)}
+	if err := event.validate(); err != errMessageTooBig {
+		t.Errorf("Should return %q. Got: %q", errMessageTooBig, err)
+	}
+}
