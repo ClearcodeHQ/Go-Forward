@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -33,6 +34,8 @@ const (
 	putLogEventsDelay = 200 * time.Millisecond
 )
 
+var errMessageTooBig = errors.New("Message is too big.")
+
 type logEvent struct {
 	msg string
 	// Timestamp in milliseconds
@@ -41,6 +44,13 @@ type logEvent struct {
 
 func (e *logEvent) size() int {
 	return len(e.msg) + eventSizeOverhead
+}
+
+func (e *logEvent) validate() error {
+	if e.size() > maxEventSize {
+		return errMessageTooBig
+	}
+	return nil
 }
 
 type messageBatch []logEvent
