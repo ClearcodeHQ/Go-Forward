@@ -78,10 +78,6 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 	defer close(out)
 	for msg := range in {
 		if parsed, err := parsefn(msg); err == nil {
-			// No point in sending empty messages.
-			if parsed.message == "" {
-				continue
-			}
 			// Timestamp must be in milliseconds
 			event := logEvent{msg: fmtfn(parsed), timestamp: parsed.timestamp.Unix() * 1000}
 			if err := event.validate(); err == nil {
