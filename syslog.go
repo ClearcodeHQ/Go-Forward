@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -100,7 +99,6 @@ var facilityMap = map[facility]string{
 	logLocal7:   "LOCAL7",
 }
 
-var errEmptyMessage = errors.New("Message is empty.")
 var errUnknownMessageFormat = errors.New("Unknown syslog message format.")
 
 func (s severity) String() string {
@@ -124,49 +122,4 @@ func (p priority) decode() (facility, severity) {
 func (s syslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
 		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
-}
-
-type syslogParser func(msg string) (syslogMessage, error)
-
-func parseRFC3164(msg string) (parsed syslogMessage, err error) {
-	var pri priority
-	var timestamp string
-	var ts time.Time
-	splited := strings.SplitN(msg, " ", 4)
-	if len(splited) != 4 {
-		err = errUnknownMessageFormat
-		return
-	}
-	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
-	msg = strings.Trim(msg, " \n\t")
-	if msg == "" {
-		err = errEmptyMessage
-		return
-	}
-
-	_, err = fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
-	if err != nil {
-		return
-	}
-
-	ts, err = time.Parse(time.RFC3339, timestamp)
-	if err != nil {
-		return
-	}
-
-	fac, sev := pri.decode()
-
-	parsed = syslogMessage{
-		facility:  fac,
-		severity:  sev,
-		message:   msg,
-		timestamp: ts,
-		syslogtag: tag,
-		hostname:  hname,
-	}
-	return
-}
-
-var parserFunctions = map[string]syslogParser{
-	"RFC3339": parseRFC3164,
 }
