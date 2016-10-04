@@ -14,8 +14,8 @@ before_install:
 - go get github.com/mattn/goveralls
 
 script:
-- go vet ./...
-- go test -v ./...
+- go vet
+- go test -v
 - ./.travis.goimports.sh
 
 after_success:
