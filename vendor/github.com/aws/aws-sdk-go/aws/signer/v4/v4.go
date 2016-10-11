@@ -247,11 +247,6 @@ func (v4 Signer) signWithBody(r *http.Request, body io.ReadSeeker, service, regi
 	}
 
 	if ctx.isRequestSigned() {
-		if !v4.Credentials.IsExpired() && currentTimeFn().Before(ctx.Time.Add(10*time.Minute)) {
-			// If the request is already signed, and the credentials have not
-			// expired, and the request is not too old ignore the signing request.
-			return ctx.SignedHeaderVals, nil
-		}
 		ctx.Time = currentTimeFn()
 		ctx.handlePresignRemoval()
 	}
@@ -366,7 +361,9 @@ func signSDKRequestWithCurrTime(req *request.Request, curTimeFn func() time.Time
 		signingTime = req.LastSignedAt
 	}
 
-	signedHeaders, err := v4.signWithBody(req.HTTPRequest, req.Body, name, region, req.ExpireTime, signingTime)
+	signedHeaders, err := v4.signWithBody(req.HTTPRequest, req.GetBody(),
+		name, region, req.ExpireTime, signingTime,
+	)
 	if err != nil {
 		req.Error = err
 		req.SignedHeaderVals = nil
