@@ -95,8 +95,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 		select {
 		case event := <-in:
 			received = append(received, event)
-		case result := <-uploadDone:
-			fmt.Println(result)
+		case <-uploadDone:
 			uploadDone = nil
 		case <-time.Tick(putLogEventsDelay):
 			/*
@@ -111,7 +110,6 @@ func recToDst(in <-chan logEvent, dst *destination) {
 				go func() {
 					uploadDone <- dst.upload(pending)
 				}()
-				fmt.Println(length, "events sent")
 			}
 		}
 	}
