@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -162,6 +163,10 @@ func (dst *destination) createStream() error {
 	// ResourceNotFoundException when there is no group
 	// InvalidParameterException when name is invalid
 	return err
+}
+
+func (dst *destination) String() string {
+	return fmt.Sprintf("group: %s stream: %s", dst.group, dst.stream)
 }
 
 func findToken(dst *destination, page *cloudwatchlogs.DescribeLogStreamsOutput) bool {

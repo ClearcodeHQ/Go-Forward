@@ -82,3 +82,11 @@ func TestEventValidateTooBig(t *testing.T) {
 		t.Errorf("Should return %q. Got: %q", errMessageTooBig, err)
 	}
 }
+
+func TestDestinationString(t *testing.T) {
+	dst := destination{group: "group", stream: "stream"}
+	expected := "group: group stream: stream"
+	if str := dst.String(); str != expected {
+		t.Errorf("Should return '%s'. Got: '%s'", expected, str)
+	}
+}
