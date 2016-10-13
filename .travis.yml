@@ -15,7 +15,7 @@ before_install:
 
 script:
 - go vet
-- go test -v
+- go test
 - ./.travis.goimports.sh
 
 after_success:
