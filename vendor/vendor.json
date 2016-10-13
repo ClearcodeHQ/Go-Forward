@@ -3,14 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "QX3gcUY0fj5Mj+h3US/JnC7/dDE=",
-			"path": "github.com/aws/aws-sdk-go",
-			"revision": "429750244b4773992ab16ab536447e584795b156",
-			"revisionTime": "2016-10-06T23:32:44Z",
-			"version": "v1.4.15",
-			"versionExact": "v1.4.15"
-		},
-		{
 			"checksumSHA1": "dq1GRxE/Qsvp1pawHFQ3vaFoYX4=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "429750244b4773992ab16ab536447e584795b156",
