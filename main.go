@@ -15,11 +15,6 @@ type streamBond struct {
 	stream string
 }
 
-type destMsg struct {
-	dst   *destination
-	event logEvent
-}
-
 type destMap map[receiver]*destination
 
 func main() {
