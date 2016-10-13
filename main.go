@@ -99,7 +99,7 @@ func recToDst(in <-chan logEvent, dst *destination, logs chan<- string) {
 		case event := <-in:
 			received = append(received, event)
 		case result := <-uploadDone:
-			logs <- fmt.Sprint(result)
+			logs <- fmt.Sprint(dst, result)
 			uploadDone = nil
 		case <-time.Tick(putLogEventsDelay):
 			/*
@@ -108,10 +108,10 @@ func recToDst(in <-chan logEvent, dst *destination, logs chan<- string) {
 				Only one upload can proceed / tick / stream.
 			*/
 			length := len(received)
-			logs <- fmt.Sprintf("%d messages in buffer", length)
+			logs <- fmt.Sprintf("%d messages in buffer for %s", length, dst)
 			if length > 0 && uploadDone == nil {
 				pending, received = received[:numEvents(length)], received[numEvents(length):]
-				logs <- fmt.Sprintf("Sending %d messages", len(pending))
+				logs <- fmt.Sprintf("Sending %d messages to %s", len(pending), dst)
 				uploadDone = make(chan error)
 				go func() {
 					uploadDone <- dst.upload(pending)
