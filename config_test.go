@@ -1,9 +1,10 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/go-ini/ini"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestValidateGroup_valid_chars(t *testing.T) {

@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-ini/ini"
 	"net/url"
 	"strings"
+
+	"github.com/go-ini/ini"
 )
 
 const generalSection = "general"
