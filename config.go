@@ -22,12 +22,13 @@ var (
 	errInvalidScheme = errors.New("invalid network scheme")
 )
 
-// Read and return all sections from config file
+// Load config file and return it
 func getConfig(file string) (config *ini.File, err error) {
 	config, err = ini.Load(file)
 	if err != nil {
 		return
 	}
+	// Remove unused default section
 	config.DeleteSection(ini.DEFAULT_SECTION)
 	return
 }
@@ -52,12 +53,10 @@ func validateSection(section *ini.Section) error {
 		"stream": validateStrean,
 		"source": validateSource,
 	}
-	// Check required keys
 	for key, keyfunc := range required {
 		if !section.HasKey(key) {
 			return fmt.Errorf("missing key %s in section %s", key, section.Name())
 		}
-		// Validate values
 		if err := keyfunc(section.Key(key).String()); err != nil {
 			return fmt.Errorf("bad value of %s in section %s: %s", key, section.Name(), err)
 		}
