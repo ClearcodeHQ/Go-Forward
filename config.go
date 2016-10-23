@@ -32,14 +32,20 @@ func getConfig(file string) (sections []*ini.Section, err error) {
 	return
 }
 
-// Read, validate and return all bons from sections
-// func getBonds(sections []*ini.Section) (bonds []streamBond, err error) {
-// 	for _, section := range sections {
-// 		if section.Name() != generalSection {
-//
-// 		}
-// 	}
-// }
+// Return all bonds from sections
+func getBonds(sections []*ini.Section) []streamBond {
+	bonds := make([]streamBond, 0)
+	for _, section := range sections {
+		if section.Name() != generalSection && section.Name() != ini.DEFAULT_SECTION {
+			bonds = append(bonds, streamBond{
+				group:  section.Key("group").String(),
+				stream: section.Key("stream").String(),
+				url:    section.Key("source").String(),
+			})
+		}
+	}
+	return bonds
+}
 
 func validateSection(section *ini.Section) error {
 	var required = map[string]validateKeyFunc{

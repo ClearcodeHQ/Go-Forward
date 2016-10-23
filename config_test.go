@@ -82,3 +82,16 @@ func TestValidateSection_ok(t *testing.T) {
 	err := validateSection(sec)
 	assert.Nil(t, err)
 }
+
+func Test_getBonds(t *testing.T) {
+	expected := []streamBond{
+		{url: "url", group: "group", stream: "stream"},
+	}
+	i, _ := ini.Load([]byte(""))
+	sec, _ := i.NewSection("some name")
+	sec.NewKey("group", "group")
+	sec.NewKey("stream", "stream")
+	sec.NewKey("source", "url")
+	bonds := getBonds(i.Sections())
+	assert.Equal(t, expected, bonds)
+}
