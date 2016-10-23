@@ -3,7 +3,6 @@ package main
 import (
 	"testing"
 
-	"github.com/go-ini/ini"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,36 +62,23 @@ func TestValidateSource_error(t *testing.T) {
 }
 
 func TestValidateSection_missing_key(t *testing.T) {
-	i, _ := ini.Load([]byte("[asd]"))
-	sec := i.Section("asd")
+	sec := fixture_valid_config().Section("valid")
+	sec.DeleteKey("group")
 	err := validateSection(sec)
 	assert.NotNil(t, err)
 }
 
 func TestValidateSection_ok(t *testing.T) {
-	i, _ := ini.Load([]byte("[asd]"))
-	sec := i.Section("asd")
-	for key, val := range map[string]string{
-		"group":  "some_group_name",
-		"stream": "stream_name",
-		"source": "udp://localhost:5514",
-	} {
-		sec.NewKey(key, val)
-	}
+	sec := fixture_valid_config().Section("valid")
 	err := validateSection(sec)
 	assert.Nil(t, err)
 }
 
 func Test_getBonds(t *testing.T) {
 	expected := []streamBond{
-		{url: "url", group: "group", stream: "stream"},
+		{stream: "stream", group: "group", url: "udp://localhost:5514"},
 	}
-	i, _ := ini.Load([]byte(""))
-	i.DeleteSection(ini.DEFAULT_SECTION)
-	sec, _ := i.NewSection("some name")
-	sec.NewKey("group", "group")
-	sec.NewKey("stream", "stream")
-	sec.NewKey("source", "url")
-	bonds := getBonds(i)
+	config := fixture_valid_config()
+	bonds := getBonds(config)
 	assert.Equal(t, expected, bonds)
 }
