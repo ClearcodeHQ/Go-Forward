@@ -23,20 +23,19 @@ var (
 )
 
 // Read and return all sections from config file
-func getConfig(file string) (sections []*ini.Section, err error) {
-	config, err := ini.Load(file)
+func getConfig(file string) (config *ini.File, err error) {
+	config, err = ini.Load(file)
 	if err != nil {
 		return
 	}
-	sections = config.Sections()
+	config.DeleteSection(ini.DEFAULT_SECTION)
 	return
 }
 
 // Return all bonds from sections
-func getBonds(sections []*ini.Section) []streamBond {
-	bonds := make([]streamBond, 0)
-	for _, section := range sections {
-		if section.Name() != generalSection && section.Name() != ini.DEFAULT_SECTION {
+func getBonds(config *ini.File) (bonds []streamBond) {
+	for _, section := range config.Sections() {
+		if section.Name() != generalSection {
 			bonds = append(bonds, streamBond{
 				group:  section.Key("group").String(),
 				stream: section.Key("stream").String(),
@@ -44,7 +43,7 @@ func getBonds(sections []*ini.Section) []streamBond {
 			})
 		}
 	}
-	return bonds
+	return
 }
 
 func validateSection(section *ini.Section) error {

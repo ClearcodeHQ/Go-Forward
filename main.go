@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -17,11 +18,29 @@ type streamBond struct {
 
 type destMap map[receiver]*destination
 
-func main() {
-	var logger = log.New(os.Stdout, "DEBUG: ", 0)
-	bonds := []streamBond{
-		{url: "udp://localhost:5514", group: "lkostka", stream: "test"},
+func do_init() []streamBond {
+	var cfgFile string
+	flag.StringVar(&cfgFile, "c", "/etc/cwlagent.conf", "Config file location.")
+	flag.Parse()
+	logger := log.New(os.Stderr, "ERROR: ", 0)
+	config, err := getConfig(cfgFile)
+	if err != nil {
+		logger.Fatal(err)
 	}
+	for _, section := range config.Sections() {
+		if section.Name() != generalSection {
+			err := validateSection(section)
+			if err != nil {
+				logger.Fatal(err)
+			}
+		}
+	}
+	return getBonds(config)
+}
+
+func main() {
+	bonds := do_init()
+	logger := log.New(os.Stdout, "DEBUG: ", 0)
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
 	logger.Print("Seting tokens.")

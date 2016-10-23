@@ -88,10 +88,11 @@ func Test_getBonds(t *testing.T) {
 		{url: "url", group: "group", stream: "stream"},
 	}
 	i, _ := ini.Load([]byte(""))
+	i.DeleteSection(ini.DEFAULT_SECTION)
 	sec, _ := i.NewSection("some name")
 	sec.NewKey("group", "group")
 	sec.NewKey("stream", "stream")
 	sec.NewKey("source", "url")
-	bonds := getBonds(i.Sections())
+	bonds := getBonds(i)
 	assert.Equal(t, expected, bonds)
 }
