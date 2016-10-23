@@ -54,7 +54,7 @@ func validateSection(section *ini.Section) error {
 	}
 	// Check required keys
 	for key, keyfunc := range required {
-		if ok := section.HasKey(key); !ok {
+		if !section.HasKey(key) {
 			return fmt.Errorf("missing key %s in section %s", key, section.Name())
 		}
 		// Validate values
@@ -78,7 +78,7 @@ func validateSource(name string) error {
 		"udp": true,
 	}
 	// Check for valid scheme
-	if _, ok := schemes[uri.Scheme]; !ok {
+	if !schemes[uri.Scheme] {
 		return errInvalidScheme
 	}
 	return nil
