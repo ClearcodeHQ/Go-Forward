@@ -126,6 +126,7 @@ func (dst *destination) upload(events messageBatch) error {
 	return err
 }
 
+// For newly created log streams, token is an empty string.
 func (dst *destination) setToken() error {
 	params := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(dst.group),
