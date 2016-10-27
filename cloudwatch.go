@@ -115,6 +115,9 @@ func (dst *destination) upload(events messageBatch) error {
 		LogStreamName: aws.String(dst.stream),
 		SequenceToken: aws.String(dst.token),
 	}
+	// When rejectedLogEventsInfo is not empty, app can not
+	// do anything reasonable with rejected logs. Ignore it.
+	// Meybe expose some statistics for rejected counters.
 	resp, err := dst.svc.PutLogEvents(params)
 	if err == nil {
 		// Assign value (not pointer) so that response may be garbage collected.
