@@ -147,25 +147,22 @@ func (dst *destination) create() (err error) {
 	return
 }
 
+// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
 func (dst *destination) createGroup() error {
 	params := &cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(dst.group),
 	}
 	_, err := dst.svc.CreateLogGroup(params)
-	// ResourceAlreadyExistsException
-	// InvalidParameterException when name is invalid
 	return err
 }
 
+// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogStream.html
 func (dst *destination) createStream() error {
 	params := &cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(dst.group),
 		LogStreamName: aws.String(dst.stream),
 	}
 	_, err := dst.svc.CreateLogStream(params)
-	// ResourceAlreadyExistsException
-	// ResourceNotFoundException when there is no group
-	// InvalidParameterException when name is invalid
 	return err
 }
 
