@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -38,21 +37,18 @@ func do_init() []streamBond {
 	return getBonds(config)
 }
 
+var logger *log.Logger
+
 func main() {
 	bonds := do_init()
-	logger := log.New(os.Stdout, "DEBUG: ", 0)
+	logger = log.New(os.Stdout, "DEBUG: ", 0)
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
 	logger.Print("Seting tokens.")
 	setTokens(mapping)
-	logs := make(chan string)
 	logger.Print("Seting flow.")
-	setupFlow(mapping, logs)
+	setupFlow(mapping)
 	for {
-		select {
-		case log := <-logs:
-			logger.Print(log)
-		}
 	}
 }
 
@@ -86,12 +82,12 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 	return
 }
 
-func setupFlow(mapping destMap, logs chan<- string) {
+func setupFlow(mapping destMap) {
 	for recv, dst := range mapping {
 		in := recv.Receive()
 		out := make(chan logEvent)
 		go convertEvents(in, out, parserFunctions["RFC3339"], formatterFunctions["default"])
-		go recToDst(out, dst, logs)
+		go recToDst(out, dst)
 	}
 }
 
@@ -110,7 +106,7 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 }
 
 // Buffer received events and send them to cloudwatch.
-func recToDst(in <-chan logEvent, dst *destination, logs chan<- string) {
+func recToDst(in <-chan logEvent, dst *destination) {
 	var pending, received messageBatch
 	var uploadDone chan error
 	for {
@@ -118,7 +114,7 @@ func recToDst(in <-chan logEvent, dst *destination, logs chan<- string) {
 		case event := <-in:
 			received = append(received, event)
 		case result := <-uploadDone:
-			logs <- fmt.Sprint(dst, result)
+			logger.Print(dst, result)
 			uploadDone = nil
 		case <-time.Tick(putLogEventsDelay):
 			/*
@@ -127,10 +123,10 @@ func recToDst(in <-chan logEvent, dst *destination, logs chan<- string) {
 				Only one upload can proceed / tick / stream.
 			*/
 			length := len(received)
-			logs <- fmt.Sprintf("%d messages in buffer for %s", length, dst)
+			logger.Printf("%d messages in buffer for %s\n", length, dst)
 			if length > 0 && uploadDone == nil {
 				pending, received = received[:numEvents(length)], received[numEvents(length):]
-				logs <- fmt.Sprintf("Sending %d messages to %s", len(pending), dst)
+				logger.Printf("Sending %d messages to %s\n", len(pending), dst)
 				uploadDone = make(chan error)
 				go func() {
 					uploadDone <- dst.upload(pending)
