@@ -95,7 +95,7 @@ func numEvents(length int) int {
 type destination struct {
 	stream string
 	group  string
-	token  string
+	token  *string
 	svc    *cloudwatchlogs.CloudWatchLogs
 }
 
@@ -113,15 +113,14 @@ func (dst *destination) upload(events messageBatch) error {
 		LogEvents:     logevents,
 		LogGroupName:  aws.String(dst.group),
 		LogStreamName: aws.String(dst.stream),
-		SequenceToken: aws.String(dst.token),
+		SequenceToken: dst.token,
 	}
 	// When rejectedLogEventsInfo is not empty, app can not
 	// do anything reasonable with rejected logs. Ignore it.
 	// Meybe expose some statistics for rejected counters.
 	resp, err := dst.svc.PutLogEvents(params)
 	if err == nil {
-		// Assign value (not pointer) so that response may be garbage collected.
-		dst.token = *resp.NextSequenceToken
+		dst.token = resp.NextSequenceToken
 	}
 	return err
 }
@@ -173,8 +172,7 @@ func (dst *destination) String() string {
 func findToken(dst *destination, page *cloudwatchlogs.DescribeLogStreamsOutput) bool {
 	for _, row := range page.LogStreams {
 		if dst.stream == *row.LogStreamName {
-			// Assign value (not pointer) so that page may be garbage collected.
-			dst.token = *row.UploadSequenceToken
+			dst.token = row.UploadSequenceToken
 			return true
 		}
 	}
