@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/go-ini/ini"
 	"math/rand"
 	"time"
+
+	"github.com/go-ini/ini"
 )
 
 // Create a N long random string
