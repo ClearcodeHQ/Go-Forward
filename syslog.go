@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -98,8 +97,6 @@ var facilityMap = map[facility]string{
 	logLocal6:   "LOCAL6",
 	logLocal7:   "LOCAL7",
 }
-
-var errUnknownMessageFormat = errors.New("Unknown syslog message format.")
 
 func (s severity) String() string {
 	if val, ok := severityMap[s]; ok {

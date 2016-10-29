@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 )
-
-var errEmptyMessage = errors.New("Message is empty.")
 
 type syslogParser func(msg string) (syslogMessage, error)
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -35,8 +34,6 @@ const (
 	// PutLogEvents 5 requests/second/log stream.
 	putLogEventsDelay = 200 * time.Millisecond
 )
-
-var errMessageTooBig = errors.New("Message is too big.")
 
 type logEvent struct {
 	msg string

@@ -13,7 +13,7 @@ func TestValidateGroup_valid_chars(t *testing.T) {
 
 func TestValidateGroup_too_long(t *testing.T) {
 	err := validateGroup(RandomString(518))
-	assert.Equal(t, err, errNameLooLong)
+	assert.Equal(t, err, errNameTooLong)
 }
 
 func TestValidateGroup_empty(t *testing.T) {
@@ -30,7 +30,7 @@ func TestValidateGroup_invalid_strings(t *testing.T) {
 
 func TestValidateStream_too_long(t *testing.T) {
 	err := validateStrean(RandomString(518))
-	assert.Equal(t, err, errNameLooLong)
+	assert.Equal(t, err, errNameTooLong)
 }
 
 func TestValidateStream_empty(t *testing.T) {

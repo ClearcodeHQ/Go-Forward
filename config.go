@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -14,13 +13,6 @@ const generalSection = "general"
 type generalConfig struct {
 	role string
 }
-
-var (
-	errNameLooLong   = errors.New("name too long")
-	errInvalidName   = errors.New("invalid name")
-	errNameEmpty     = errors.New("empty name")
-	errInvalidScheme = errors.New("invalid network scheme")
-)
 
 // Load config file and return it
 func getConfig(file string) (config *ini.File, err error) {
@@ -90,10 +82,10 @@ Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forwa
 */
 func validateGroup(name string) error {
 	if name == "" {
-		return errNameEmpty
+		return errEmptyName
 	}
 	if len(name) > 512 {
-		return errNameLooLong
+		return errNameTooLong
 	}
 	for _, char := range name {
 		if !strings.Contains("_-/.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", string(char)) {
@@ -110,10 +102,10 @@ The ':' colon character is not allowed.
 */
 func validateStrean(name string) error {
 	if name == "" {
-		return errNameEmpty
+		return errEmptyName
 	}
 	if len(name) > 512 {
-		return errNameLooLong
+		return errNameTooLong
 	}
 	if strings.Contains(name, ":") {
 		return errInvalidName
