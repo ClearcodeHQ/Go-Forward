@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
@@ -140,8 +141,10 @@ func (dst *destination) setToken() error {
 
 // Create log group and stream. If an error is returned, PutLogEvents can not succeed.
 func (dst *destination) create() (err error) {
-	// LimitExceededException
 	err = dst.createGroup()
+	if err != nil {
+		return
+	}
 	err = dst.createStream()
 	return
 }
@@ -152,6 +155,11 @@ func (dst *destination) createGroup() error {
 		LogGroupName: aws.String(dst.group),
 	}
 	_, err := dst.svc.CreateLogGroup(params)
+	if err, ok := err.(awserr.Error); ok {
+		if err.Code() == "ResourceAlreadyExistsException" {
+			return nil
+		}
+	}
 	return err
 }
 
@@ -162,6 +170,11 @@ func (dst *destination) createStream() error {
 		LogStreamName: aws.String(dst.stream),
 	}
 	_, err := dst.svc.CreateLogStream(params)
+	if err, ok := err.(awserr.Error); ok {
+		if err.Code() == "ResourceAlreadyExistsException" {
+			return nil
+		}
+	}
 	return err
 }
 
