@@ -44,22 +44,29 @@ func main() {
 	logger = log.New(os.Stdout, "DEBUG: ", 0)
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
-	logger.Print("Seting tokens.")
+	createAll(mapping)
 	setTokens(mapping)
-	logger.Print("Seting flow.")
 	setupFlow(mapping)
 	select {}
 }
 
 func setTokens(dests destMap) {
+	logger.Print("Seting tokens.")
 	for _, dst := range dests {
-		dst.setToken()
+		logger.Print(dst.setToken())
 	}
 }
 
 func closeAll(dests destMap) {
 	for recv := range dests {
 		recv.Close()
+	}
+}
+
+func createAll(dests destMap) {
+	logger.Print("Creating destinations")
+	for _, dst := range dests {
+		logger.Print(dst.create())
 	}
 }
 
@@ -82,6 +89,7 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 }
 
 func setupFlow(mapping destMap) {
+	logger.Print("Seting flow.")
 	for recv, dst := range mapping {
 		in := recv.Receive()
 		out := make(chan logEvent)
