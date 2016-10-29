@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -133,6 +134,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			logger.Printf("%d messages in buffer for %s\n", length, dst)
 			if length > 0 && uploadDone == nil {
 				pending, received = received[:numEvents(length)], received[numEvents(length):]
+				sort.Sort(pending)
 				logger.Printf("Sending %d messages to %s\n", len(pending), dst)
 				uploadDone = make(chan error)
 				go func() {
