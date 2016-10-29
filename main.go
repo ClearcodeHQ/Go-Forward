@@ -48,8 +48,7 @@ func main() {
 	setTokens(mapping)
 	logger.Print("Seting flow.")
 	setupFlow(mapping)
-	for {
-	}
+	select {}
 }
 
 func setTokens(dests destMap) {
