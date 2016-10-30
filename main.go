@@ -133,7 +133,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			*/
 			if !queue.empty() && uploadDone == nil {
 				pending = queue.getBatch()
-				logger.Printf("Sending %d messages to %s", len(pending), dst)
+				logger.Printf("%s sending %d messages", dst, len(pending))
 				uploadDone = make(chan error)
 				go func() {
 					uploadDone <- dst.upload(pending)
@@ -148,9 +148,13 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 	case awserr.Error:
 		switch err.Code() {
 		case "InvalidSequenceTokenException":
-			logger.Print("updating token for ", dst)
+			logger.Printf("%s invalid sequence token", dst)
 			dst.setToken()
-			logger.Print("putting back to queue for ", dst)
+			queue.put(pending)
+		case "ResourceNotFoundException":
+			logger.Printf("%s missing group/stream", dst)
+			dst.create()
+			dst.setToken()
 			queue.put(pending)
 		default:
 			logger.Printf("upload to %s failed %s %s", dst, err.Code(), err.Message())
@@ -159,5 +163,5 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 	default:
 		logger.Printf("upload to %s failed %s ", dst, result)
 	}
-	logger.Printf("%d messages in queue for %s", queue.num(), dst)
+	logger.Printf("%s %d messages in queue", dst, queue.num())
 }
