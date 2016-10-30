@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-type numPair struct {
-	expected int
-	passed   int
-}
-
 func TestMessageSorting(t *testing.T) {
 	unsorted := messageBatch{
 		logEvent{timestamp: 2},
@@ -61,18 +56,6 @@ func TestBatchSize(t *testing.T) {
 
 	if result != expected {
 		t.Errorf("Batch size shoud be %v. Got: %v", expected, result)
-	}
-}
-
-func TestNumEvents(t *testing.T) {
-	cases := []numPair{
-		numPair{expected: 100, passed: 100},
-		numPair{expected: maxBatchEvents, passed: maxBatchEvents * 2},
-	}
-	for _, pair := range cases {
-		if result := numEvents(pair.passed); result != pair.expected {
-			t.Errorf("Should return %d. Got: %d", pair.expected, result)
-		}
 	}
 }
 

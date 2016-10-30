@@ -4,9 +4,9 @@ import (
 	"flag"
 	"log"
 	"os"
-	"sort"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
@@ -115,14 +115,15 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 
 // Buffer received events and send them to cloudwatch.
 func recToDst(in <-chan logEvent, dst *destination) {
-	var pending, received messageBatch
+	queue := new(eventQueue)
+	var pending messageBatch
 	var uploadDone chan error
 	for {
 		select {
 		case event := <-in:
-			received = append(received, event)
+			queue.add(event)
 		case result := <-uploadDone:
-			logger.Print(dst, result)
+			handleUploadResult(dst, result, queue, pending)
 			uploadDone = nil
 		case <-time.Tick(putLogEventsDelay):
 			/*
@@ -130,11 +131,8 @@ func recToDst(in <-chan logEvent, dst *destination) {
 				otherwise DataAlreadyAcceptedException is returned.
 				Only one upload can proceed / tick / stream.
 			*/
-			length := len(received)
-			logger.Printf("%d messages in buffer for %s\n", length, dst)
-			if length > 0 && uploadDone == nil {
-				pending, received = received[:numEvents(length)], received[numEvents(length):]
-				sort.Sort(pending)
+			if !queue.empty() && uploadDone == nil {
+				pending = queue.getBatch()
 				logger.Printf("Sending %d messages to %s\n", len(pending), dst)
 				uploadDone = make(chan error)
 				go func() {
@@ -143,4 +141,23 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			}
 		}
 	}
+}
+
+func handleUploadResult(dst *destination, result error, queue *eventQueue, pending messageBatch) {
+	switch err := result.(type) {
+	case awserr.Error:
+		switch err.Code() {
+		case "InvalidSequenceTokenException":
+			logger.Print("updating token for ", dst)
+			dst.setToken()
+			logger.Print("putting back to queue for ", dst)
+			queue.put(pending)
+		default:
+			logger.Print("result for ", dst, err.Code(), err.Message())
+		}
+	case nil:
+	default:
+		logger.Print("result for ", dst, result)
+	}
+	logger.Printf("%d messages in queue for %s\n", queue.num(), dst)
 }
