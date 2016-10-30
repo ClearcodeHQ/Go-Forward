@@ -133,7 +133,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			*/
 			if !queue.empty() && uploadDone == nil {
 				pending = queue.getBatch()
-				logger.Printf("Sending %d messages to %s\n", len(pending), dst)
+				logger.Printf("Sending %d messages to %s", len(pending), dst)
 				uploadDone = make(chan error)
 				go func() {
 					uploadDone <- dst.upload(pending)
@@ -153,11 +153,11 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 			logger.Print("putting back to queue for ", dst)
 			queue.put(pending)
 		default:
-			logger.Print("result for ", dst, err.Code(), err.Message())
+			logger.Printf("upload to %s failed %s %s", dst, err.Code(), err.Message())
 		}
 	case nil:
 	default:
-		logger.Print("result for ", dst, result)
+		logger.Printf("upload to %s failed %s ", dst, result)
 	}
-	logger.Printf("%d messages in queue for %s\n", queue.num(), dst)
+	logger.Printf("%d messages in queue for %s", queue.num(), dst)
 }
