@@ -18,15 +18,15 @@ func (q *eventQueue) add(event logEvent) {
 
 func (q *eventQueue) getBatch() (batch messageBatch) {
 	sort.Sort(messageBatch(q.events))
-	batchSize, num := 0, 0
+	batchSize, maxIndex := 0, 0
 	for i, event := range q.events {
 		batchSize += event.size()
 		if batchSize > maxBatchSize {
 			break
 		}
-		num = i + 1
+		maxIndex = i + 1
 	}
-	batch, q.events = q.events[:numEvents(num)], q.events[numEvents(num):]
+	batch, q.events = q.events[:numEvents(maxIndex)], q.events[numEvents(maxIndex):]
 	return
 }
 
