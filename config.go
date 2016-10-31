@@ -8,7 +8,7 @@ import (
 	"github.com/go-ini/ini"
 )
 
-const generalSection = "general"
+const generalSection = "main"
 
 type generalConfig struct {
 	role string

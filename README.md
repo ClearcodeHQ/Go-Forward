@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/ClearcodeHQ/Go-Forward.svg)](https://travis-ci.org/ClearcodeHQ/Go-Forward)
 [![Coverage Status](https://coveralls.io/repos/github/ClearcodeHQ/Go-Forward/badge.svg?branch=master)](https://coveralls.io/github/ClearcodeHQ/Go-Forward?branch=master)
 
-This program's purpose is to forward all logs received from a unix socket and forward them to cloudwatch logs.
+This program's purpose is to forward all logs received from a unix/ip socket and forward them to cloudwatch logs.
 
 ### Motivation:
 * Learn go
@@ -9,8 +9,12 @@ This program's purpose is to forward all logs received from a unix socket and fo
 * No file readers
 * Socket listeners
 
-### Projects to look at:
-* https://github.com/bradgignac/logspout-cloudwatch
-* https://github.com/ejholmes/cloudwatch
-* https://github.com/saymedia/journald-cloudwatch-logs
-* https://github.com/mdsol/logspout-cloudwatch
+### Usage:
+You must provide `-c` parameter which is programs config file.
+See [config.ini](config.ini) for possible configuration options.
+
+### Program behaviour:
+* Logs that are too old are discarded by cloudwatch.
+* Logs that exceed their allowed size are not forwarded.
+* Incomming messages timestamps are only used to set cloudwatch logs
+timestamp value. They are not written in message body.

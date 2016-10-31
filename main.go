@@ -20,12 +20,15 @@ type destMap map[receiver]*destination
 
 func do_init() []streamBond {
 	var cfgFile string
-	flag.StringVar(&cfgFile, "c", "/etc/cwlagent.conf", "Config file location.")
+	flag.StringVar(&cfgFile, "c", "", "Config file location.")
 	flag.Parse()
 	logger := log.New(os.Stderr, "ERROR: ", 0)
+	if cfgFile == "" {
+		logger.Fatal("provide config file location")
+	}
 	config, err := getConfig(cfgFile)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf("couldn't read config file: %s", err)
 	}
 	for _, section := range config.Sections() {
 		if section.Name() != generalSection {
