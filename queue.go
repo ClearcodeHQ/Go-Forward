@@ -17,9 +17,9 @@ func (q *eventQueue) add(event logEvent) {
 }
 
 func (q *eventQueue) getBatch() (batch messageBatch) {
+	sort.Sort(messageBatch(q.events))
 	length := len(q.events)
 	batch, q.events = q.events[:numEvents(length)], q.events[numEvents(length):]
-	sort.Sort(batch)
 	return
 }
 
