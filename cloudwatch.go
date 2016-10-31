@@ -25,10 +25,6 @@ const (
 	maxBatchTimeSpan = 24 * time.Hour
 	// How many bytes to append to each log event.
 	eventSizeOverhead = 26
-	// None of the log events in the batch can be more than 2 hours in the future.
-	eventFutureTimeDelta = 2 * time.Hour
-	// None of the log events in the batch can be older than 14 days.
-	eventPastTimeDelta = 14 * 24 * time.Hour
 	// DescribeLogStreams transactions/second.
 	describeLogstreamsDelay = 200 * time.Millisecond
 	// PutLogEvents 5 requests/second/log stream.
