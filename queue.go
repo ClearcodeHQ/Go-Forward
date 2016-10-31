@@ -21,7 +21,7 @@ func (q *eventQueue) getBatch() (batch messageBatch) {
 	batchSize, num := 0, 0
 	for i, event := range q.events {
 		batchSize += event.size()
-		if batchSize >= maxBatchSize {
+		if batchSize > maxBatchSize {
 			break
 		}
 		num = i + 1

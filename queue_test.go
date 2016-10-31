@@ -79,7 +79,7 @@ func Test_queue_max_batch_size(t *testing.T) {
 	}
 	queue := &eventQueue{events: events}
 	batch := queue.getBatch()
-	if batch.size() >= maxBatchSize {
+	if batch.size() > maxBatchSize {
 		t.Errorf("batch size %d must be less than %d", batch.size(), maxBatchSize)
 	}
 }
