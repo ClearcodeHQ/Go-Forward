@@ -16,10 +16,10 @@ func (q *eventQueue) add(event logEvent) {
 	q.events = append(q.events, event)
 }
 
-func (q *eventQueue) getBatch() (pending messageBatch) {
+func (q *eventQueue) getBatch() (batch messageBatch) {
 	length := len(q.events)
-	pending, q.events = q.events[:numEvents(length)], q.events[numEvents(length):]
-	sort.Sort(pending)
+	batch, q.events = q.events[:numEvents(length)], q.events[numEvents(length):]
+	sort.Sort(batch)
 	return
 }
 

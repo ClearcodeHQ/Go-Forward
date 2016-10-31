@@ -63,8 +63,8 @@ func Test_queue_put(t *testing.T) {
 	assert.Equal(t, expected, queue.events)
 }
 
-// Assert that pending is sorted.
-func Test_queue_sorted_pending(t *testing.T) {
+// Assert that batch is sorted.
+func Test_queue_sorted_batch(t *testing.T) {
 	queue := new(eventQueue)
 	queue.add(logEvent{timestamp: 2})
 	queue.add(logEvent{timestamp: 1})
