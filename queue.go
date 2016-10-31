@@ -8,12 +8,8 @@ type eventQueue struct {
 	events []logEvent
 }
 
-func (q *eventQueue) put(elements []logEvent) {
-	q.events = append(elements, q.events...)
-}
-
-func (q *eventQueue) add(event logEvent) {
-	q.events = append(q.events, event)
+func (q *eventQueue) add(event ...logEvent) {
+	q.events = append(q.events, event...)
 }
 
 func (q *eventQueue) getBatch() (batch messageBatch) {

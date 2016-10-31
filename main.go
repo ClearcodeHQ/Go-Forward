@@ -153,12 +153,12 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 		case "InvalidSequenceTokenException":
 			logger.Printf("%s invalid sequence token", dst)
 			dst.setToken()
-			queue.put(pending)
+			queue.add(pending...)
 		case "ResourceNotFoundException":
 			logger.Printf("%s missing group/stream", dst)
 			dst.create()
 			dst.setToken()
-			queue.put(pending)
+			queue.add(pending...)
 		default:
 			logger.Printf("upload to %s failed %s %s", dst, err.Code(), err.Message())
 		}

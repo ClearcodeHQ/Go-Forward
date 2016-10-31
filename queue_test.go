@@ -49,20 +49,6 @@ func Test_queue_add(t *testing.T) {
 	assert.Equal(t, expected, queue.events)
 }
 
-// Assert that events are put before head of the slice.
-func Test_queue_put(t *testing.T) {
-	queue := new(eventQueue)
-	queue.add(logEvent{msg: "second"})
-	queue.add(logEvent{msg: "third"})
-	queue.put([]logEvent{logEvent{msg: "first"}})
-	expected := []logEvent{
-		logEvent{msg: "first"},
-		logEvent{msg: "second"},
-		logEvent{msg: "third"},
-	}
-	assert.Equal(t, expected, queue.events)
-}
-
 // Assert that batch is sorted.
 func Test_queue_sorted_batch(t *testing.T) {
 	queue := new(eventQueue)
