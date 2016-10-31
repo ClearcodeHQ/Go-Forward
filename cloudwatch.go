@@ -48,28 +48,6 @@ func (e *logEvent) validate() error {
 	return nil
 }
 
-type messageBatch []logEvent
-
-// Calculate batch size including each event overhead.
-func (m messageBatch) size() (size int) {
-	for _, elem := range m {
-		size += elem.size()
-	}
-	return
-}
-
-func (m messageBatch) Len() int {
-	return len(m)
-}
-
-func (m messageBatch) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func (m messageBatch) Less(i, j int) bool {
-	return m[i].timestamp < m[j].timestamp
-}
-
 type destination struct {
 	stream string
 	group  string
@@ -79,7 +57,7 @@ type destination struct {
 
 // Put log events and update sequence token.
 // Possible errors http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
-func (dst *destination) upload(events messageBatch) error {
+func (dst *destination) upload(events eventsList) error {
 	logevents := make([]*cloudwatchlogs.InputLogEvent, 0, len(events))
 	for _, elem := range events {
 		logevents = append(logevents, &cloudwatchlogs.InputLogEvent{

@@ -119,7 +119,7 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 // Buffer received events and send them to cloudwatch.
 func recToDst(in <-chan logEvent, dst *destination) {
 	queue := new(eventQueue)
-	var pending messageBatch
+	var pending eventsList
 	var uploadDone chan error
 	for {
 		select {
@@ -146,7 +146,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 	}
 }
 
-func handleUploadResult(dst *destination, result error, queue *eventQueue, pending messageBatch) {
+func handleUploadResult(dst *destination, result error, queue *eventQueue, pending eventsList) {
 	switch err := result.(type) {
 	case awserr.Error:
 		switch err.Code() {

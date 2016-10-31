@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,9 +13,7 @@ func Test_numEvents(t *testing.T) {
 		numPair{expected: maxBatchEvents, passed: maxBatchEvents * 2},
 	}
 	for _, pair := range cases {
-		if result := numEvents(pair.passed); result != pair.expected {
-			t.Errorf("Should return %d. Got: %d", pair.expected, result)
-		}
+		assert.Equal(t, pair.expected, numEvents(pair.passed))
 	}
 }
 
@@ -41,7 +40,7 @@ func Test_queue_add(t *testing.T) {
 	queue.add(logEvent{msg: "first"})
 	queue.add(logEvent{msg: "second"})
 	queue.add(logEvent{msg: "third"})
-	expected := []logEvent{
+	expected := eventsList{
 		logEvent{msg: "first"},
 		logEvent{msg: "second"},
 		logEvent{msg: "third"},
@@ -81,4 +80,27 @@ func Test_queue_max_batch_events(t *testing.T) {
 	if len(batch) > maxBatchEvents {
 		t.Errorf("number of events in batch %d must be less than %d", len(batch), maxBatchEvents)
 	}
+}
+
+func Test_eventList_size(t *testing.T) {
+	events := eventsList{
+		logEvent{msg: "123456"},
+		logEvent{msg: "12345"},
+		logEvent{msg: "123"},
+	}
+	assert.Equal(t, 92, events.size())
+}
+
+// Assert that events are sorted by timestamp in ascending order
+func Test_eventList_Sort(t *testing.T) {
+	sorted := eventsList{
+		logEvent{timestamp: 1},
+		logEvent{timestamp: 2},
+	}
+	to_sort := eventsList{
+		logEvent{timestamp: 2},
+		logEvent{timestamp: 1},
+	}
+	sort.Sort(to_sort)
+	assert.Equal(t, sorted, to_sort)
 }

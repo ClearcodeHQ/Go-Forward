@@ -4,16 +4,38 @@ import (
 	"sort"
 )
 
+type eventsList []logEvent
+
+// Calculate size including each event overhead.
+func (m eventsList) size() (size int) {
+	for _, elem := range m {
+		size += elem.size()
+	}
+	return
+}
+
+func (m eventsList) Len() int {
+	return len(m)
+}
+
+func (m eventsList) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m eventsList) Less(i, j int) bool {
+	return m[i].timestamp < m[j].timestamp
+}
+
 type eventQueue struct {
-	events []logEvent
+	events eventsList
 }
 
 func (q *eventQueue) add(event ...logEvent) {
 	q.events = append(q.events, event...)
 }
 
-func (q *eventQueue) getBatch() (batch messageBatch) {
-	sort.Sort(messageBatch(q.events))
+func (q *eventQueue) getBatch() (batch eventsList) {
+	sort.Sort(q.events)
 	batchSize, maxIndex := 0, 0
 	for i, event := range q.events {
 		batchSize += event.size()
