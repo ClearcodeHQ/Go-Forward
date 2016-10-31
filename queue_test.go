@@ -70,3 +70,16 @@ func Test_queue_sorted_batch(t *testing.T) {
 	queue.add(logEvent{timestamp: 1})
 	assert.Equal(t, logEvent{timestamp: 1}, queue.getBatch()[0])
 }
+
+// Assert that batch size does not exceed its maximum allowed
+func Test_queue_max_batch(t *testing.T) {
+	events := make([]logEvent, 0)
+	for i := 0; i < 10; i++ {
+		events = append(events, logEvent{msg: RandomString(maxEventSize - 10)})
+	}
+	queue := &eventQueue{events: events}
+	batch := queue.getBatch()
+	if batch.size() >= maxBatchSize {
+		t.Errorf("batch size %d must be less than %d", batch.size(), maxBatchSize)
+	}
+}
