@@ -21,21 +21,6 @@ func TestMessageSorting(t *testing.T) {
 	}
 }
 
-func TestBatchTimeSpan(t *testing.T) {
-	events := messageBatch{
-		logEvent{timestamp: 1},
-		logEvent{timestamp: 2},
-		logEvent{timestamp: 3},
-	}
-
-	result := events.timeSpan()
-	expected := time.Duration(time.Millisecond * 2)
-
-	if result != expected {
-		t.Errorf("Time duration shoud be equal. Result: %v Expected: %v", result, expected)
-	}
-}
-
 func TestEventSize(t *testing.T) {
 	event := logEvent{msg: "123", timestamp: 123}
 	expected := 3 + eventSizeOverhead
