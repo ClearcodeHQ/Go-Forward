@@ -89,11 +89,11 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 			stream: bond.stream,
 			svc:    svc,
 		}
-		mapping[rec] = &dst
 		if err != nil {
 			closeAll(mapping)
 			panic(err)
 		}
+		mapping[rec] = &dst
 	}
 	return
 }
