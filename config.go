@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -14,14 +15,21 @@ type generalConfig struct {
 	role string
 }
 
-// Load config file and return it
-func getConfig(file string) (config *ini.File, err error) {
-	config, err = ini.Load(file)
+func getConfig(logger *log.Logger, file string) (config *ini.File) {
+	config, err := ini.Load(file)
 	if err != nil {
-		return
+		logger.Fatal(err)
 	}
 	// Remove unused default section
 	config.DeleteSection(ini.DEFAULT_SECTION)
+	for _, section := range config.Sections() {
+		if section.Name() != generalSection {
+			err := validateSection(section)
+			if err != nil {
+				logger.Fatal(err)
+			}
+		}
+	}
 	return
 }
 

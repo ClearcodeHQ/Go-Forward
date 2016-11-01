@@ -10,7 +10,11 @@ This program's purpose is to forward all logs received from a unix/ip socket and
 * Socket listeners
 
 ### Usage:
-You must provide `-c` parameter which is programs config file.
+```
+-c string
+	Config file location. (default "/etc/logs_agent.cfg")
+-d	Turn on debug mode
+```
 See [config.ini](config.ini) for possible configuration options.
 
 ### Program behaviour:

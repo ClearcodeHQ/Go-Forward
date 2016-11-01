@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -18,34 +19,38 @@ type streamBond struct {
 
 type destMap map[receiver]*destination
 
-func do_init() []streamBond {
-	var cfgFile string
-	flag.StringVar(&cfgFile, "c", "", "Config file location.")
+type options struct {
+	cfgfile string
+	debug   bool
+	logOut  io.Writer
+}
+
+func getOptions(logger *log.Logger) options {
+	opts := options{}
+	flag.StringVar(&opts.cfgfile, "c", "/etc/logs_agent.cfg", "Config file location.")
+	flag.BoolVar(&opts.debug, "d", false, "Turn on debug mode.")
 	flag.Parse()
+	if opts.debug {
+		opts.logOut = os.Stdout
+	} else {
+		opts.logOut, _ = os.Open(os.DevNull)
+	}
+	return opts
+}
+
+func do_init() (bonds []streamBond, opts options) {
 	logger := log.New(os.Stderr, "ERROR: ", 0)
-	if cfgFile == "" {
-		logger.Fatal("provide config file location")
-	}
-	config, err := getConfig(cfgFile)
-	if err != nil {
-		logger.Fatalf("couldn't read config file: %s", err)
-	}
-	for _, section := range config.Sections() {
-		if section.Name() != generalSection {
-			err := validateSection(section)
-			if err != nil {
-				logger.Fatal(err)
-			}
-		}
-	}
-	return getBonds(config)
+	opts = getOptions(logger)
+	config := getConfig(logger, opts.cfgfile)
+	bonds = getBonds(config)
+	return
 }
 
 var logger *log.Logger
 
 func main() {
-	bonds := do_init()
-	logger = log.New(os.Stdout, "DEBUG: ", 0)
+	bonds, opts := do_init()
+	logger = log.New(opts.logOut, "DEBUG: ", 0)
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
 	createAll(mapping)
