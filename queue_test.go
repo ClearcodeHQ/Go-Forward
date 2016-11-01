@@ -7,16 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_numEvents(t *testing.T) {
-	cases := []numPair{
-		numPair{expected: 100, passed: 100},
-		numPair{expected: maxBatchEvents, passed: maxBatchEvents * 2},
-	}
-	for _, pair := range cases {
-		assert.Equal(t, pair.expected, numEvents(pair.passed))
-	}
-}
-
 func Test_queue_empty(t *testing.T) {
 	queue := new(eventQueue)
 	assert.True(t, queue.empty())
@@ -57,29 +47,48 @@ func Test_queue_sorted_batch(t *testing.T) {
 }
 
 // Assert that batch size does not exceed its allowed maximum
-func Test_queue_max_batch_size(t *testing.T) {
-	events := make([]logEvent, 0)
-	for i := 0; i < 10; i++ {
-		events = append(events, logEvent{msg: RandomString(maxEventSize - 10)})
+func Test_sizeIndex_multi(t *testing.T) {
+	events := eventsList{
+		logEvent{msg: RandomString(maxEventSize)},
+		logEvent{msg: RandomString(maxEventSize)},
+		logEvent{msg: RandomString(maxEventSize)},
+		logEvent{msg: RandomString(maxEventSize)},
 	}
-	queue := &eventQueue{events: events}
-	batch := queue.getBatch()
-	if batch.size() > maxBatchSize {
-		t.Errorf("batch size %d must be less than %d", batch.size(), maxBatchSize)
-	}
+	assert.Equal(t, 3, sizeIndex(events))
 }
 
-// Assert that number of events in batch does not exceed its allowed maximum
-func Test_queue_max_batch_events(t *testing.T) {
-	events := make([]logEvent, 0)
-	for i := 0; i < maxBatchEvents+10; i++ {
-		events = append(events, logEvent{msg: "some message"})
+// Assert that batch time span does not exceed its allowed maximum
+func Test_timeIndex_multi(t *testing.T) {
+	events := eventsList{
+		logEvent{timestamp: maxBatchTimeSpan},
+		logEvent{timestamp: maxBatchTimeSpan},
+		logEvent{timestamp: maxBatchTimeSpan * 3},
 	}
-	queue := &eventQueue{events: events}
-	batch := queue.getBatch()
-	if len(batch) > maxBatchEvents {
-		t.Errorf("number of events in batch %d must be less than %d", len(batch), maxBatchEvents)
+	assert.Equal(t, 2, timeIndex(events))
+}
+
+// Assert that batch time span does not exceed it allowed maximum
+func Test_timeIndex_single(t *testing.T) {
+	events := eventsList{
+		logEvent{timestamp: maxBatchTimeSpan},
 	}
+	assert.Equal(t, 1, timeIndex(events))
+}
+
+// Assert that lowest index is returned
+func Test_numEvents_min(t *testing.T) {
+	events := make(eventsList, 0)
+	funcA := func(e eventsList) int { return maxBatchEvents - 1 }
+	funcB := func(e eventsList) int { return maxBatchEvents - 2 }
+	assert.Equal(t, maxBatchEvents-2, numEvents(events, funcA, funcB))
+}
+
+// Assert that maximum index is returned
+func Test_numEvents_max(t *testing.T) {
+	events := make(eventsList, 0)
+	funcA := func(e eventsList) int { return maxBatchEvents }
+	funcB := func(e eventsList) int { return maxBatchEvents }
+	assert.Equal(t, maxBatchEvents, numEvents(events, funcA, funcB))
 }
 
 func Test_eventList_size(t *testing.T) {

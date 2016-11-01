@@ -22,7 +22,7 @@ const (
 	// Maximum event size in bytes.
 	maxEventSize = 262144
 	// A batch of log events in a single PutLogEvents request cannot span more than 24 hours.
-	maxBatchTimeSpan = 24 * time.Hour
+	maxBatchTimeSpan = 86400000
 	// How many bytes to append to each log event.
 	eventSizeOverhead = 26
 	// DescribeLogStreams transactions/second.

@@ -36,15 +36,8 @@ func (q *eventQueue) add(event ...logEvent) {
 
 func (q *eventQueue) getBatch() (batch eventsList) {
 	sort.Sort(q.events)
-	batchSize, maxIndex := 0, 0
-	for i, event := range q.events {
-		batchSize += event.size()
-		if batchSize > maxBatchSize {
-			break
-		}
-		maxIndex = i + 1
-	}
-	batch, q.events = q.events[:numEvents(maxIndex)], q.events[numEvents(maxIndex):]
+	index := numEvents(q.events, sizeIndex, timeIndex)
+	batch, q.events = q.events[:index], q.events[index:]
 	return
 }
 
@@ -56,10 +49,42 @@ func (q *eventQueue) num() int {
 	return len(q.events)
 }
 
-// Calculate batch size based on ammount of received events.
-func numEvents(length int) int {
-	if length <= maxBatchEvents {
-		return length
+// Return lowest index based on all check functions
+// This function assumes that events are sorted by timestamp in ascending order
+func numEvents(events eventsList, checkFn ...indexNumFn) int {
+	index := maxBatchEvents
+	for _, fn := range checkFn {
+		result := fn(events)
+		if result < index {
+			index = result
+		}
 	}
-	return maxBatchEvents
+	return index
+}
+
+type indexNumFn func(events eventsList) int
+
+// This function assumes that events are sorted by timestamp in ascending order
+func sizeIndex(events eventsList) int {
+	size, index := 0, 0
+	for i, event := range events {
+		size += event.size()
+		if size > maxBatchSize {
+			break
+		}
+		index = i + 1
+	}
+	return index
+}
+
+// This function assumes that events are sorted by timestamp in ascending order
+func timeIndex(events eventsList) (index int) {
+	first := events[0]
+	for i, event := range events {
+		if (event.timestamp - first.timestamp) > maxBatchTimeSpan {
+			break
+		}
+		index = i + 1
+	}
+	return index
 }
