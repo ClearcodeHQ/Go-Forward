@@ -162,7 +162,7 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 		case "ResourceNotFoundException":
 			logger.Printf("%s missing group/stream", dst)
 			dst.create()
-			dst.setToken()
+			dst.token = nil
 			queue.add(pending...)
 		default:
 			logger.Printf("upload to %s failed %s %s", dst, err.Code(), err.Message())
