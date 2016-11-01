@@ -37,10 +37,11 @@ func getConfig(logger *log.Logger, file string) (config *ini.File) {
 func getBonds(config *ini.File) (bonds []streamBond) {
 	for _, section := range config.Sections() {
 		if section.Name() != generalSection {
+			url, _ := url.Parse(section.Key("source").String())
 			bonds = append(bonds, streamBond{
 				group:  section.Key("group").String(),
 				stream: section.Key("stream").String(),
-				url:    section.Key("source").String(),
+				url:    url,
 			})
 		}
 	}

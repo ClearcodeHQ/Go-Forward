@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 type streamBond struct {
-	url    string
+	url    *url.URL
 	group  string
 	stream string
 }

@@ -48,14 +48,10 @@ func (rec *UDPreceiver) Receive() <-chan string {
 
 // Create a new receiver based on passed address. This function can
 // return receivers for UDP, TCP, UNIX sockets.
-func newReceiver(addr string) (rec receiver, err error) {
-	uri, err := url.Parse(addr)
-	if err != nil {
-		return
-	}
-	switch uri.Scheme {
+func newReceiver(url *url.URL) (rec receiver, err error) {
+	switch url.Scheme {
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", uri.Host)
+		addr, err := net.ResolveUDPAddr("udp", url.Host)
 		if err != nil {
 			return rec, err
 		}

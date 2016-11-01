@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,8 +76,9 @@ func TestValidateSection_ok(t *testing.T) {
 }
 
 func Test_getBonds(t *testing.T) {
+	u, _ := url.Parse("udp://localhost:5514")
 	expected := []streamBond{
-		{stream: "stream", group: "group", url: "udp://localhost:5514"},
+		{stream: "stream", group: "group", url: u},
 	}
 	config := fixture_valid_config()
 	bonds := getBonds(config)
