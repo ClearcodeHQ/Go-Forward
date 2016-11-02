@@ -67,29 +67,13 @@ func main() {
 	bonds := do_init()
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
-	createAll(mapping)
-	setTokens(mapping)
 	setupFlow(mapping)
 	select {}
-}
-
-func setTokens(dests destMap) {
-	for _, dst := range dests {
-		log.Debugf("seting token for %s", dst)
-		dst.setToken()
-	}
 }
 
 func closeAll(dests destMap) {
 	for recv := range dests {
 		recv.Close()
-	}
-}
-
-func createAll(dests destMap) {
-	for _, dst := range dests {
-		log.Debugf("creatign %s", dst)
-		dst.create()
 	}
 }
 
@@ -137,6 +121,8 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 
 // Buffer received events and send them to cloudwatch.
 func recToDst(in <-chan logEvent, dst *destination) {
+	log.Debugf("seting token for %s", dst)
+	dst.setToken()
 	queue := new(eventQueue)
 	var pending eventsList
 	var uploadDone chan error
