@@ -37,7 +37,7 @@ func (f *programFormat) Format(e *log.Entry) ([]byte, error) {
 
 func getOptions() options {
 	opts := options{}
-	flag.StringVar(&opts.cfgfile, "c", "/etc/logs_agent.cfg", "Config file location.")
+	flag.StringVar(&opts.cfgfile, "c", "/etc/awslogs.cfg", "Config file location.")
 	flag.BoolVar(&opts.debug, "d", false, "Turn on debug mode.")
 	flag.Parse()
 	return opts
