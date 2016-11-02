@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/go-ini/ini"
 )
 
@@ -15,10 +15,10 @@ type generalConfig struct {
 	role string
 }
 
-func getConfig(logger *log.Logger, file string) (config *ini.File) {
+func getConfig(file string) (config *ini.File) {
 	config, err := ini.Load(file)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatalf("could not read config file %s", err)
 	}
 	// Remove unused default section
 	config.DeleteSection(ini.DEFAULT_SECTION)
@@ -26,7 +26,7 @@ func getConfig(logger *log.Logger, file string) (config *ini.File) {
 		if section.Name() != generalSection {
 			err := validateSection(section)
 			if err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		}
 	}

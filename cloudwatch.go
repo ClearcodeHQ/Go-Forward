@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -152,7 +153,7 @@ func cwlogsSession() *cloudwatchlogs.CloudWatchLogs {
 		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return cloudwatchlogs.New(sess)
 }

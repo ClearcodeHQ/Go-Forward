@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type receiver interface {
@@ -38,7 +40,7 @@ func (rec *UDPreceiver) Receive() <-chan string {
 			if err != nil && strings.Contains(err.Error(), "use of closed network connection") {
 				return
 			} else if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 			out <- string(buf[0:n])
 		}

@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
-	"io"
-	"log"
+	"io/ioutil"
+	"log/syslog"
 	"net/url"
 	"os"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
@@ -23,35 +25,46 @@ type destMap map[receiver]*destination
 type options struct {
 	cfgfile string
 	debug   bool
-	logOut  io.Writer
 }
 
-func getOptions(logger *log.Logger) options {
+type programFormat struct{}
+
+func (f *programFormat) Format(e *log.Entry) ([]byte, error) {
+	buf := []byte(e.Message)
+	buf = append(buf, byte('\n'))
+	return buf, nil
+}
+
+func getOptions() options {
 	opts := options{}
 	flag.StringVar(&opts.cfgfile, "c", "/etc/logs_agent.cfg", "Config file location.")
 	flag.BoolVar(&opts.debug, "d", false, "Turn on debug mode.")
 	flag.Parse()
-	if opts.debug {
-		opts.logOut = os.Stdout
-	} else {
-		opts.logOut, _ = os.Open(os.DevNull)
-	}
 	return opts
 }
 
-func do_init() (bonds []streamBond, opts options) {
-	logger := log.New(os.Stderr, "ERROR: ", 0)
-	opts = getOptions(logger)
-	config := getConfig(logger, opts.cfgfile)
+func do_init() (bonds []streamBond) {
+	opts := getOptions()
+	log.SetFormatter(&programFormat{})
+	log.SetOutput(os.Stdout)
+	config := getConfig(opts.cfgfile)
+	if opts.debug {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.ErrorLevel)
+		hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_DAEMON, "awslogs")
+		if err != nil {
+			log.Fatal("Unable to connect to local syslog daemon")
+		}
+		log.AddHook(hook)
+		log.SetOutput(ioutil.Discard)
+	}
 	bonds = getBonds(config)
 	return
 }
 
-var logger *log.Logger
-
 func main() {
-	bonds, opts := do_init()
-	logger = log.New(opts.logOut, "DEBUG: ", 0)
+	bonds := do_init()
 	cwlogs := cwlogsSession()
 	mapping := createMap(bonds, cwlogs)
 	createAll(mapping)
@@ -61,9 +74,9 @@ func main() {
 }
 
 func setTokens(dests destMap) {
-	logger.Print("Seting tokens.")
 	for _, dst := range dests {
-		logger.Print(dst.setToken())
+		log.Debugf("seting token for %s", dst)
+		dst.setToken()
 	}
 }
 
@@ -74,9 +87,9 @@ func closeAll(dests destMap) {
 }
 
 func createAll(dests destMap) {
-	logger.Print("Creating destinations")
 	for _, dst := range dests {
-		logger.Print(dst.create())
+		log.Debugf("creatign %s", dst)
+		dst.create()
 	}
 }
 
@@ -91,7 +104,7 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 		}
 		if err != nil {
 			closeAll(mapping)
-			panic(err)
+			log.Fatal(err)
 		}
 		mapping[rec] = &dst
 	}
@@ -99,7 +112,7 @@ func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping 
 }
 
 func setupFlow(mapping destMap) {
-	logger.Print("Seting flow.")
+	log.Debug("seting flow")
 	for recv, dst := range mapping {
 		in := recv.Receive()
 		out := make(chan logEvent)
@@ -142,7 +155,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			*/
 			if !queue.empty() && uploadDone == nil {
 				pending = queue.getBatch()
-				logger.Printf("%s sending %d messages", dst, len(pending))
+				log.Debugf("%s sending %d messages", dst, len(pending))
 				uploadDone = make(chan error)
 				go func() {
 					uploadDone <- dst.upload(pending)
@@ -157,20 +170,20 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 	case awserr.Error:
 		switch err.Code() {
 		case "InvalidSequenceTokenException":
-			logger.Printf("%s invalid sequence token", dst)
+			log.Debugf("%s invalid sequence token", dst)
 			dst.setToken()
 			queue.add(pending...)
 		case "ResourceNotFoundException":
-			logger.Printf("%s missing group/stream", dst)
+			log.Debugf("%s missing group/stream", dst)
 			dst.create()
 			dst.token = nil
 			queue.add(pending...)
 		default:
-			logger.Printf("upload to %s failed %s %s", dst, err.Code(), err.Message())
+			log.Errorf("upload to %s failed %s %s", dst, err.Code(), err.Message())
 		}
 	case nil:
 	default:
-		logger.Printf("upload to %s failed %s ", dst, result)
+		log.Errorf("upload to %s failed %s ", dst, result)
 	}
-	logger.Printf("%s %d messages in queue", dst, queue.num())
+	log.Debugf("%s %d messages in queue", dst, queue.num())
 }
