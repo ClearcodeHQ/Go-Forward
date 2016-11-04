@@ -12,13 +12,8 @@ import (
 	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/go-ini/ini"
 )
-
-type streamBond struct {
-	url    *url.URL
-	group  string
-	stream string
-}
 
 type destMap map[receiver]*destination
 
@@ -43,7 +38,7 @@ func getOptions() options {
 	return opts
 }
 
-func do_init() (bonds []streamBond) {
+func do_init() (bonds []*ini.Section) {
 	opts := getOptions()
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stdout)
@@ -59,14 +54,14 @@ func do_init() (bonds []streamBond) {
 		log.AddHook(hook)
 		log.SetOutput(ioutil.Discard)
 	}
-	bonds = getBonds(config)
+	bonds = getFlows(config)
 	return
 }
 
 func main() {
-	bonds := do_init()
+	flows := do_init()
 	cwlogs := cwlogsSession()
-	mapping := createMap(bonds, cwlogs)
+	mapping := createMap(flows, cwlogs)
 	setupFlow(mapping)
 	select {}
 }
@@ -77,13 +72,14 @@ func closeAll(dests destMap) {
 	}
 }
 
-func createMap(bonds []streamBond, svc *cloudwatchlogs.CloudWatchLogs) (mapping destMap) {
+func createMap(flows []*ini.Section, svc *cloudwatchlogs.CloudWatchLogs) (mapping destMap) {
 	mapping = make(destMap)
-	for _, bond := range bonds {
-		rec, err := newReceiver(bond.url)
+	for _, flow := range flows {
+		url, _ := url.Parse(flow.Key("source").String())
+		rec, err := newReceiver(url)
 		dst := destination{
-			group:  bond.group,
-			stream: bond.stream,
+			group:  flow.Key("group").String(),
+			stream: flow.Key("stream").String(),
 			svc:    svc,
 		}
 		if err != nil {

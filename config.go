@@ -9,7 +9,7 @@ import (
 	"github.com/go-ini/ini"
 )
 
-const generalSection = "main"
+const mainSectionName = "main"
 
 type generalConfig struct {
 	role string
@@ -23,7 +23,7 @@ func getConfig(file string) (config *ini.File) {
 	// Remove unused default section
 	config.DeleteSection(ini.DEFAULT_SECTION)
 	for _, section := range config.Sections() {
-		if section.Name() != generalSection {
+		if section.Name() != mainSectionName {
 			err := validateSection(section)
 			if err != nil {
 				log.Fatal(err)
@@ -33,16 +33,11 @@ func getConfig(file string) (config *ini.File) {
 	return
 }
 
-// Return all bonds from sections
-func getBonds(config *ini.File) (bonds []streamBond) {
+// Return all flow sections
+func getFlows(config *ini.File) (flows []*ini.Section) {
 	for _, section := range config.Sections() {
-		if section.Name() != generalSection {
-			url, _ := url.Parse(section.Key("source").String())
-			bonds = append(bonds, streamBond{
-				group:  section.Key("group").String(),
-				stream: section.Key("stream").String(),
-				url:    url,
-			})
+		if section.Name() != mainSectionName {
+			flows = append(flows, section)
 		}
 	}
 	return
