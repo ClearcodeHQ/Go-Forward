@@ -65,11 +65,11 @@ func validateSection(section *ini.Section) error {
 	return nil
 }
 
-type validateKeyFunc func(name string) error
+type validateKeyFunc func(value string) error
 
 // Validate source URL
-func validateSource(name string) error {
-	uri, err := url.Parse(name)
+func validateSource(value string) error {
+	uri, err := url.Parse(value)
 	if err != nil {
 		return err
 	}
@@ -89,14 +89,14 @@ http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLo
 Log group names can be between 1 and 512 characters long.
 Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forward slash), and '.' (period).
 */
-func validateGroup(name string) error {
-	if name == "" {
+func validateGroup(value string) error {
+	if value == "" {
 		return errEmptyValue
 	}
-	if len(name) > 512 {
+	if len(value) > 512 {
 		return errNameTooLong
 	}
-	for _, char := range name {
+	for _, char := range value {
 		if !strings.Contains("_-/.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", string(char)) {
 			return errInvalidValue
 		}
@@ -109,14 +109,14 @@ http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLo
 Log stream names can be between 1 and 512 characters long
 The ':' colon character is not allowed.
 */
-func validateStrean(name string) error {
-	if name == "" {
+func validateStrean(value string) error {
+	if value == "" {
 		return errEmptyValue
 	}
-	if len(name) > 512 {
+	if len(value) > 512 {
 		return errNameTooLong
 	}
-	if strings.Contains(name, ":") {
+	if strings.Contains(value, ":") {
 		return errInvalidValue
 	}
 	return nil
