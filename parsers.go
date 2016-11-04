@@ -48,5 +48,5 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 }
 
 var parserFunctions = map[string]syslogParser{
-	"RFC3339": parseRFC3164,
+	"RFC3164": parseRFC3164,
 }

@@ -100,7 +100,7 @@ func setupFlow(mapping destMap) {
 	for recv, dst := range mapping {
 		in := recv.Receive()
 		out := make(chan logEvent)
-		go convertEvents(in, out, parserFunctions["RFC3339"], formatterFunctions["default"])
+		go convertEvents(in, out, parserFunctions["RFC3164"], formatterFunctions["default"])
 		go recToDst(out, dst)
 	}
 }
