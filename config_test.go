@@ -19,13 +19,13 @@ func TestValidateGroup_too_long(t *testing.T) {
 
 func TestValidateGroup_empty(t *testing.T) {
 	err := validateGroup("")
-	assert.NotNil(t, err)
+	assert.Equal(t, errEmptyValue, err)
 }
 
 func TestValidateGroup_invalid_strings(t *testing.T) {
 	for _, chr := range []string{",", "|", "ą"} {
 		err := validateGroup(chr)
-		assert.Equal(t, err, errInvalidName)
+		assert.Equal(t, err, errInvalidValue)
 	}
 }
 
@@ -36,12 +36,12 @@ func TestValidateStream_too_long(t *testing.T) {
 
 func TestValidateStream_empty(t *testing.T) {
 	err := validateStrean("")
-	assert.NotNil(t, err)
+	assert.Equal(t, errEmptyValue, err)
 }
 
 func TestValidateStream_invalid_strings(t *testing.T) {
 	err := validateGroup(":")
-	assert.Equal(t, err, errInvalidName)
+	assert.Equal(t, err, errInvalidValue)
 }
 
 func TestValidateSource_ok(t *testing.T) {
@@ -83,4 +83,14 @@ func Test_getBonds(t *testing.T) {
 	config := fixture_valid_config()
 	bonds := getBonds(config)
 	assert.Equal(t, expected, bonds)
+}
+
+func Test_validateSyslogFormat_empty(t *testing.T) {
+	err := validateSyslogFormat("")
+	assert.Equal(t, errEmptyValue, err)
+}
+
+func Test_validateSyslogFormat_format(t *testing.T) {
+	err := validateSyslogFormat("bad_format")
+	assert.Equal(t, errInvalidFormat, err)
 }

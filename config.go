@@ -91,14 +91,14 @@ Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forwa
 */
 func validateGroup(name string) error {
 	if name == "" {
-		return errEmptyName
+		return errEmptyValue
 	}
 	if len(name) > 512 {
 		return errNameTooLong
 	}
 	for _, char := range name {
 		if !strings.Contains("_-/.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", string(char)) {
-			return errInvalidName
+			return errInvalidValue
 		}
 	}
 	return nil
@@ -111,13 +111,23 @@ The ':' colon character is not allowed.
 */
 func validateStrean(name string) error {
 	if name == "" {
-		return errEmptyName
+		return errEmptyValue
 	}
 	if len(name) > 512 {
 		return errNameTooLong
 	}
 	if strings.Contains(name, ":") {
-		return errInvalidName
+		return errInvalidValue
+	}
+	return nil
+}
+
+func validateSyslogFormat(value string) error {
+	if value == "" {
+		return errEmptyValue
+	}
+	if _, ok := parserFunctions[value]; !ok {
+		return errInvalidFormat
 	}
 	return nil
 }
