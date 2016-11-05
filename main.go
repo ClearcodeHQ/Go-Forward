@@ -15,7 +15,12 @@ import (
 	"github.com/go-ini/ini"
 )
 
-type destMap map[receiver]*destination
+type flowCfg struct {
+	dst      *destination
+	syslogFn syslogParser
+	fmtFn    syslogFormatter
+	recv     receiver
+}
 
 type options struct {
 	cfgfile string
@@ -38,7 +43,7 @@ func getOptions() options {
 	return opts
 }
 
-func do_init() (bonds []*ini.Section) {
+func do_init() (flows []*ini.Section) {
 	opts := getOptions()
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stdout)
@@ -54,50 +59,55 @@ func do_init() (bonds []*ini.Section) {
 		log.AddHook(hook)
 		log.SetOutput(ioutil.Discard)
 	}
-	bonds = getFlows(config)
+	flows = getFlows(config)
 	return
 }
 
 func main() {
 	flows := do_init()
 	cwlogs := cwlogsSession()
-	mapping := createMap(flows, cwlogs)
-	setupFlow(mapping)
+	configs := createFlowCfg(flows, cwlogs)
+	setupFlows(configs)
 	select {}
 }
 
-func closeAll(dests destMap) {
-	for recv := range dests {
-		recv.Close()
+func closeAll(flows []flowCfg) {
+	for _, flow := range flows {
+		flow.recv.Close()
 	}
 }
 
-func createMap(flows []*ini.Section, svc *cloudwatchlogs.CloudWatchLogs) (mapping destMap) {
-	mapping = make(destMap)
-	for _, flow := range flows {
-		url, _ := url.Parse(flow.Key("source").String())
+func createFlowCfg(sections []*ini.Section, svc *cloudwatchlogs.CloudWatchLogs) (flows []flowCfg) {
+	for _, section := range sections {
+		url, _ := url.Parse(section.Key("source").String())
 		rec, err := newReceiver(url)
-		dst := destination{
-			group:  flow.Key("group").String(),
-			stream: flow.Key("stream").String(),
+		dst := &destination{
+			group:  section.Key("group").String(),
+			stream: section.Key("stream").String(),
 			svc:    svc,
 		}
 		if err != nil {
-			closeAll(mapping)
+			closeAll(flows)
 			log.Fatal(err)
 		}
-		mapping[rec] = &dst
+		cfg := flowCfg{
+			dst:      dst,
+			recv:     rec,
+			fmtFn:    defaultFormatter,
+			syslogFn: parserFunctions[section.Key("syslog_format").String()],
+		}
+		flows = append(flows, cfg)
 	}
 	return
 }
 
-func setupFlow(mapping destMap) {
+func setupFlows(flows []flowCfg) {
 	log.Debug("seting flow")
-	for recv, dst := range mapping {
-		in := recv.Receive()
+	for _, flow := range flows {
+		in := flow.recv.Receive()
 		out := make(chan logEvent)
-		go convertEvents(in, out, parserFunctions["RFC3164"], formatterFunctions["default"])
-		go recToDst(out, dst)
+		go convertEvents(in, out, flow.syslogFn, flow.fmtFn)
+		go recToDst(out, flow.dst)
 	}
 }
 

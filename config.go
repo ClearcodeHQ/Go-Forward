@@ -15,6 +15,15 @@ type generalConfig struct {
 	role string
 }
 
+type validateKeyFunc func(value string) error
+
+var keyValidators = map[string]validateKeyFunc{
+	"group":         validateGroup,
+	"stream":        validateStrean,
+	"source":        validateSource,
+	"syslog_format": validateSyslogFormat,
+}
+
 func getConfig(file string) (config *ini.File) {
 	config, err := ini.Load(file)
 	if err != nil {
@@ -44,12 +53,7 @@ func getFlows(config *ini.File) (flows []*ini.Section) {
 }
 
 func validateSection(section *ini.Section) error {
-	var required = map[string]validateKeyFunc{
-		"group":  validateGroup,
-		"stream": validateStrean,
-		"source": validateSource,
-	}
-	for key, keyfunc := range required {
+	for key, keyfunc := range keyValidators {
 		if !section.HasKey(key) {
 			return fmt.Errorf("missing key %s in section %s", key, section.Name())
 		}
@@ -59,8 +63,6 @@ func validateSection(section *ini.Section) error {
 	}
 	return nil
 }
-
-type validateKeyFunc func(value string) error
 
 // Validate source URL
 func validateSource(value string) error {

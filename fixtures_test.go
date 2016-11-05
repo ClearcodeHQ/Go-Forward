@@ -23,12 +23,9 @@ func RandomString(strlen int) string {
 	return string(result)
 }
 
-func fixture_valid_config() *ini.File {
+func empty_ini_section() *ini.Section {
 	i, _ := ini.Load([]byte(""))
 	i.DeleteSection(ini.DEFAULT_SECTION)
-	sec, _ := i.NewSection("valid")
-	sec.NewKey("group", "group")
-	sec.NewKey("stream", "stream")
-	sec.NewKey("source", "udp://localhost:5514")
-	return i
+	sec, _ := i.NewSection("fixture")
+	return sec
 }

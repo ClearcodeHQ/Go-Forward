@@ -62,16 +62,9 @@ func TestValidateSource_error(t *testing.T) {
 }
 
 func TestValidateSection_missing_key(t *testing.T) {
-	sec := fixture_valid_config().Section("valid")
-	sec.DeleteKey("group")
+	sec := empty_ini_section()
 	err := validateSection(sec)
 	assert.NotNil(t, err)
-}
-
-func TestValidateSection_ok(t *testing.T) {
-	sec := fixture_valid_config().Section("valid")
-	err := validateSection(sec)
-	assert.Nil(t, err)
 }
 
 func Test_validateSyslogFormat_empty(t *testing.T) {
