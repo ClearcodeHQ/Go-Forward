@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
 	"time"
 )
 
@@ -10,12 +12,12 @@ type facility uint8
 type priority uint8
 
 type syslogMessage struct {
-	facility  facility
-	severity  severity
-	message   string
+	Facility  facility
+	Severity  severity
+	Message   string
+	Syslogtag string
+	Hostname  string
 	timestamp time.Time
-	syslogtag string
-	hostname  string
 }
 
 const maxMsgLen = 2048
@@ -118,5 +120,18 @@ func (p priority) decode() (facility, severity) {
 
 func (s syslogMessage) String() string {
 	return fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
-		s.facility, s.severity, s.timestamp, s.hostname, s.syslogtag, s.message)
+		s.Facility, s.Severity, s.timestamp, s.Hostname, s.Syslogtag, s.Message)
+}
+
+func (s syslogMessage) render(format string) (string, error) {
+	tmpl, err := template.New("").Parse(format)
+	if err != nil {
+		return "", err
+	}
+	buf := bytes.NewBuffer([]byte{})
+	err = tmpl.Execute(buf, s)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

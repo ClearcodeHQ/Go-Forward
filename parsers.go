@@ -37,12 +37,12 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 	fac, sev := pri.decode()
 
 	parsed = syslogMessage{
-		facility:  fac,
-		severity:  sev,
-		message:   msg,
+		Facility:  fac,
+		Severity:  sev,
+		Message:   msg,
+		Syslogtag: tag,
+		Hostname:  hname,
 		timestamp: ts,
-		syslogtag: tag,
-		hostname:  hname,
 	}
 	return
 }

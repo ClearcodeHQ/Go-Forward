@@ -18,7 +18,7 @@ import (
 type flowCfg struct {
 	dst      *destination
 	syslogFn syslogParser
-	fmtFn    syslogFormatter
+	format   string
 	recv     receiver
 }
 
@@ -93,7 +93,7 @@ func createFlowCfg(sections []*ini.Section, svc *cloudwatchlogs.CloudWatchLogs) 
 		cfg := flowCfg{
 			dst:      dst,
 			recv:     rec,
-			fmtFn:    defaultFormatter,
+			format:   section.Key("cloudwatch_format").String(),
 			syslogFn: parserFunctions[section.Key("syslog_format").String()],
 		}
 		flows = append(flows, cfg)
@@ -106,18 +106,19 @@ func setupFlows(flows []flowCfg) {
 	for _, flow := range flows {
 		in := flow.recv.Receive()
 		out := make(chan logEvent)
-		go convertEvents(in, out, flow.syslogFn, flow.fmtFn)
+		go convertEvents(in, out, flow.syslogFn, flow.format)
 		go recToDst(out, flow.dst)
 	}
 }
 
 // Parse,filter incimming messages and send them to destination.
-func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, fmtfn syslogFormatter) {
+func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, format string) {
 	defer close(out)
 	for msg := range in {
 		if parsed, err := parsefn(msg); err == nil {
+			rendered, _ := parsed.render(format)
 			// Timestamp must be in milliseconds
-			event := logEvent{msg: fmtfn(parsed), timestamp: parsed.timestamp.Unix() * 1000}
+			event := logEvent{msg: rendered, timestamp: parsed.timestamp.Unix() * 1000}
 			if err := event.validate(); err == nil {
 				out <- event
 			}

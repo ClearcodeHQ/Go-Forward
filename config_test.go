@@ -76,3 +76,8 @@ func Test_validateSyslogFormat_format(t *testing.T) {
 	err := validateSyslogFormat("bad_format")
 	assert.Equal(t, errInvalidFormat, err)
 }
+
+func Test_validateCloudwatchFormat_empty(t *testing.T) {
+	err := validateCloudwatchFormat("")
+	assert.Equal(t, errEmptyValue, err)
+}

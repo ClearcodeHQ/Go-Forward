@@ -53,25 +53,25 @@ func TestParseMessage(t *testing.T) {
 			t.Errorf("Error while parsing: %q", err)
 		}
 
-		if parsed.severity != elem.severity {
-			t.Errorf("Wrong severity %q. Should be: %q", parsed.severity, elem.severity)
+		if parsed.Severity != elem.severity {
+			t.Errorf("Wrong severity %q. Should be: %q", parsed.Severity, elem.severity)
 		}
-		if parsed.facility != elem.facility {
-			t.Errorf("Wrong facility %q. Should be: %q", parsed.facility, elem.facility)
+		if parsed.Facility != elem.facility {
+			t.Errorf("Wrong facility %q. Should be: %q", parsed.Facility, elem.facility)
 		}
 		// Two times can be equal even if they are in different locations.
 		// For example, 6:00 +0200 CEST and 4:00 UTC are Equal
 		if !parsed.timestamp.Equal(elem.timestamp) {
 			t.Errorf("Wrong timestamp %v. Should be: %v", parsed.timestamp, elem.timestamp)
 		}
-		if parsed.hostname != elem.hostname {
-			t.Errorf("Wrong hostname %q. Should be: %q", parsed.hostname, elem.hostname)
+		if parsed.Hostname != elem.hostname {
+			t.Errorf("Wrong hostname %q. Should be: %q", parsed.Hostname, elem.hostname)
 		}
-		if parsed.syslogtag != elem.tag {
-			t.Errorf("Wrong tag %q. Should be: %q", parsed.syslogtag, elem.tag)
+		if parsed.Syslogtag != elem.tag {
+			t.Errorf("Wrong tag %q. Should be: %q", parsed.Syslogtag, elem.tag)
 		}
-		if parsed.message != elem.message {
-			t.Errorf("Wrong message %q. Should be: %q", parsed.message, elem.message)
+		if parsed.Message != elem.message {
+			t.Errorf("Wrong message %q. Should be: %q", parsed.Message, elem.message)
 		}
 	}
 }

@@ -7,14 +7,14 @@ import (
 
 func TestDefaultFormatter(t *testing.T) {
 	m := syslogMessage{
-		severity:  logInfo,
-		facility:  logAuthpriv,
-		hostname:  "debian",
-		syslogtag: "sudo:",
-		message:   "pam_unix(sudo:session): session closed for user root",
+		Severity:  logInfo,
+		Facility:  logAuthpriv,
+		Hostname:  "debian",
+		Syslogtag: "sudo:",
+		Message:   "pam_unix(sudo:session): session closed for user root",
 	}
 	formated := fmt.Sprintf("%s %s %s %s %s",
-		m.facility, m.severity, m.hostname, m.syslogtag, m.message)
+		m.Facility, m.Severity, m.Hostname, m.Syslogtag, m.Message)
 
 	if result := defaultFormatter(m); result != formated {
 		t.Errorf("Badly formated message: %q Got: %q", formated, result)

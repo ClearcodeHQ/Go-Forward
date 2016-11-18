@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type TestSyslogPriority struct {
@@ -62,17 +64,75 @@ func TestDecodeSyslogPriority(t *testing.T) {
 
 func TestSyslogMessageString(t *testing.T) {
 	m := syslogMessage{
-		severity:  logInfo,
-		facility:  logAuthpriv,
 		timestamp: time.Date(2016, 7, 23, 12, 48, 16, 970210000, time.UTC),
-		hostname:  "debian",
-		syslogtag: "sudo:",
-		message:   "pam_unix(sudo:session): session closed for user root",
+		Severity:  logInfo,
+		Facility:  logAuthpriv,
+		Hostname:  "debian",
+		Syslogtag: "sudo:",
+		Message:   "pam_unix(sudo:session): session closed for user root",
 	}
 	formated := fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
-		m.facility, m.severity, m.timestamp, m.hostname, m.syslogtag, m.message)
+		m.Facility, m.Severity, m.timestamp, m.Hostname, m.Syslogtag, m.Message)
 
 	if result := m.String(); result != formated {
 		t.Errorf("Badly formated message: %q Got: %q", formated, result)
 	}
+}
+
+// Assert that message is rendered with correct fields order
+func Test_syslogMessage_render_order(t *testing.T) {
+	m := syslogMessage{
+		Syslogtag: "tag",
+		Message:   "message",
+	}
+	actual, _ := m.render("{{.Message}} {{.Syslogtag}}")
+	assert.Equal(t, "message tag", actual)
+}
+
+func Test_syslogMessage_render_Severity(t *testing.T) {
+	m := syslogMessage{
+		Severity: logInfo,
+	}
+	expected := fmt.Sprintf("%s", m.Severity)
+	actual, _ := m.render("{{.Severity}}")
+	assert.Equal(t, expected, actual)
+}
+
+func Test_syslogMessage_render_Facility(t *testing.T) {
+	m := syslogMessage{
+		Facility: logAuthpriv,
+	}
+	expected := fmt.Sprintf("%s", m.Facility)
+	actual, _ := m.render("{{.Facility}}")
+	assert.Equal(t, expected, actual)
+}
+
+func Test_syslogMessage_render_Hostname(t *testing.T) {
+	m := syslogMessage{
+		Hostname: "hostname",
+	}
+	actual, _ := m.render("{{.Hostname}}")
+	assert.Equal(t, "hostname", actual)
+}
+
+func Test_syslogMessage_render_Syslogtag(t *testing.T) {
+	m := syslogMessage{
+		Syslogtag: "tag",
+	}
+	actual, _ := m.render("{{.Syslogtag}}")
+	assert.Equal(t, "tag", actual)
+}
+
+func Test_syslogMessage_render_Message(t *testing.T) {
+	m := syslogMessage{
+		Message: "message",
+	}
+	actual, _ := m.render("{{.Message}}")
+	assert.Equal(t, "message", actual)
+}
+
+func Test_syslogMessage_render_error(t *testing.T) {
+	m := syslogMessage{}
+	_, err := m.render("{{.UnexportedField}}")
+	assert.NotNil(t, err)
 }

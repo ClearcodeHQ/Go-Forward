@@ -18,10 +18,11 @@ type generalConfig struct {
 type validateKeyFunc func(value string) error
 
 var keyValidators = map[string]validateKeyFunc{
-	"group":         validateGroup,
-	"stream":        validateStrean,
-	"source":        validateSource,
-	"syslog_format": validateSyslogFormat,
+	"group":             validateGroup,
+	"stream":            validateStrean,
+	"source":            validateSource,
+	"syslog_format":     validateSyslogFormat,
+	"cloudwatch_format": validateCloudwatchFormat,
 }
 
 func getConfig(file string) (config *ini.File) {
@@ -125,6 +126,13 @@ func validateSyslogFormat(value string) error {
 	}
 	if _, ok := parserFunctions[value]; !ok {
 		return errInvalidFormat
+	}
+	return nil
+}
+
+func validateCloudwatchFormat(value string) error {
+	if value == "" {
+		return errEmptyValue
 	}
 	return nil
 }
