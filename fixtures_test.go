@@ -29,3 +29,28 @@ func empty_ini_section() *ini.Section {
 	sec, _ := i.NewSection("fixture")
 	return sec
 }
+
+var testPriorities = []TestSyslogPriority{
+	{severity: logErr, facility: logMail, priority: 19},
+	{severity: logEmerg, facility: logKern, priority: 0},
+	{severity: logAlert, facility: logUser, priority: 9},
+}
+
+var testMessage = struct {
+	raw string
+	// Parsed expected fields
+	severity  severity
+	facility  facility
+	timestamp time.Time
+	hostname  string
+	syslogTag string
+	message   string
+}{
+	raw:       "<86>2016-07-23T14:48:16.970210+02:00 debian sudo: pam_unix(sudo:session): session closed for user root",
+	severity:  logInfo,
+	facility:  logAuthpriv,
+	timestamp: time.Date(2016, 7, 23, 12, 48, 16, 970210000, time.UTC),
+	hostname:  "debian",
+	syslogTag: "sudo:",
+	message:   "pam_unix(sudo:session): session closed for user root",
+}

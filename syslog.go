@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 	"time"
 )
@@ -116,11 +115,6 @@ func (f facility) String() string {
 
 func (p priority) decode() (facility, severity) {
 	return facility(p / 8), severity(p % 8)
-}
-
-func (s syslogMessage) String() string {
-	return fmt.Sprintf("FACILITY=%s SEVERITY=%s TIMESTAMP=%s HOSTNAME=%s TAG=%s MESSAGE=%s",
-		s.Facility, s.Severity, s.timestamp, s.Hostname, s.Syslogtag, s.Message)
 }
 
 func (s syslogMessage) render(format string) (string, error) {
