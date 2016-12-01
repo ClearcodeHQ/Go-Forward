@@ -20,3 +20,16 @@ script:
 
 after_success:
 - $HOME/gopath/bin/goveralls -service=travis-ci
+
+before_deploy:
+  - go get github.com/mitchellh/gox
+  - gox -os="linux freebsd" -arch="amd64 386" -output "dist/{{.OS}}_{{.Arch}}_awslogs"
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file_glob: true
+  file: dist/*
+  skip_cleanup: true
+  on:
+    tags: true
