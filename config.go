@@ -9,10 +9,60 @@ import (
 	"github.com/go-ini/ini"
 )
 
-const mainSectionName = "main"
+const (
+	mainSectionName = "main"
 
-type generalConfig struct {
-	role string
+	logOutputKey = "log_output"
+	logLevelKey  = "log_level"
+
+	debugLevelOption = "debug"
+	infoLevelOption  = "info"
+	errorLevelOption = "error"
+
+	syslogOutputOption = "syslog"
+	nullOutputOption   = "null"
+	stdoutOutputOption = "stdout"
+	stderrOutputOption = "stderr"
+)
+
+type logoutput uint8
+
+type mainConfig struct {
+	logLevel  log.Level
+	logOutput logoutput
+}
+
+const (
+	stdErr logoutput = iota
+	stdOut
+	sysLog
+	null
+)
+
+var strToOutput = map[string]logoutput{
+	syslogOutputOption: sysLog,
+	nullOutputOption:   null,
+	stdoutOutputOption: stdOut,
+	stderrOutputOption: stdErr,
+}
+
+var validOutputOptions = []string{
+	syslogOutputOption,
+	nullOutputOption,
+	stdoutOutputOption,
+	stderrOutputOption,
+}
+
+var strToLevel = map[string]log.Level{
+	debugLevelOption: log.DebugLevel,
+	infoLevelOption:  log.InfoLevel,
+	errorLevelOption: log.ErrorLevel,
+}
+
+var validLevelOptions = []string{
+	debugLevelOption,
+	infoLevelOption,
+	errorLevelOption,
 }
 
 type validateKeyFunc func(value string) error
@@ -25,6 +75,11 @@ var keyValidators = map[string]validateKeyFunc{
 	"cloudwatch_format": validateCloudwatchFormat,
 }
 
+var mainKeyValidators = map[string]validateKeyFunc{
+	logLevelKey:  validateLogLevel,
+	logOutputKey: validateLogOutput,
+}
+
 func getConfig(file string) (config *ini.File) {
 	config, err := ini.Load(file)
 	if err != nil {
@@ -34,13 +89,28 @@ func getConfig(file string) (config *ini.File) {
 	config.DeleteSection(ini.DEFAULT_SECTION)
 	for _, section := range config.Sections() {
 		if section.Name() != mainSectionName {
-			err := validateSection(section)
+			err := validateFlowSection(section)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		if section.Name() == mainSectionName {
+			err := validateMainSection(section)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 	}
 	return
+}
+
+// Return main config from section
+func getMainConfig(config *ini.File) mainConfig {
+	section := config.Section(mainSectionName)
+	return mainConfig{
+		logLevel:  strToLevel[section.Key(logLevelKey).In(errorLevelOption, validLevelOptions)],
+		logOutput: strToOutput[section.Key(logOutputKey).In(syslogOutputOption, validOutputOptions)],
+	}
 }
 
 // Return all flow sections
@@ -53,7 +123,19 @@ func getFlows(config *ini.File) (flows []*ini.Section) {
 	return
 }
 
-func validateSection(section *ini.Section) error {
+func validateMainSection(section *ini.Section) error {
+	for key, keyfunc := range mainKeyValidators {
+		if !section.HasKey(key) {
+			return fmt.Errorf("missing key %s in section %s", key, section.Name())
+		}
+		if err := keyfunc(section.Key(key).String()); err != nil {
+			return fmt.Errorf("bad value of %s in section %s: %s", key, section.Name(), err)
+		}
+	}
+	return nil
+}
+
+func validateFlowSection(section *ini.Section) error {
 	for key, keyfunc := range keyValidators {
 		if !section.HasKey(key) {
 			return fmt.Errorf("missing key %s in section %s", key, section.Name())
@@ -135,4 +217,33 @@ func validateCloudwatchFormat(value string) error {
 		return errEmptyValue
 	}
 	return nil
+}
+
+func validateLogOutput(value string) error {
+	if value == "" {
+		return errEmptyValue
+	}
+	if !strContains(validOutputOptions, value) {
+		return errInvalidValue
+	}
+	return nil
+}
+
+func validateLogLevel(value string) error {
+	if value == "" {
+		return errEmptyValue
+	}
+	if !strContains(validLevelOptions, value) {
+		return errInvalidValue
+	}
+	return nil
+}
+
+func strContains(haystack []string, needle string) bool {
+	for _, elem := range haystack {
+		if elem == needle {
+			return true
+		}
+	}
+	return false
 }

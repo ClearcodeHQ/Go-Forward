@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"io/ioutil"
 	"log/syslog"
 	"net/url"
@@ -15,6 +16,8 @@ import (
 	"github.com/go-ini/ini"
 )
 
+const defaultConfigFile = "/etc/awslogs.conf"
+
 type flowCfg struct {
 	dst      *destination
 	syslogFn syslogParser
@@ -22,9 +25,18 @@ type flowCfg struct {
 	recv     receiver
 }
 
-type options struct {
-	cfgfile string
-	debug   bool
+type writerHook struct {
+	out io.Writer
+}
+
+func (hook *writerHook) Fire(entry *log.Entry) error {
+	line, _ := entry.String()
+	io.WriteString(hook.out, line)
+	return nil
+}
+
+func (hook *writerHook) Levels() []log.Level {
+	return log.AllLevels
 }
 
 type programFormat struct{}
@@ -35,38 +47,41 @@ func (f *programFormat) Format(e *log.Entry) ([]byte, error) {
 	return buf, nil
 }
 
-func getOptions() options {
-	opts := options{}
-	flag.StringVar(&opts.cfgfile, "c", "/etc/awslogs.cfg", "Config file location.")
-	flag.BoolVar(&opts.debug, "d", false, "Turn on debug mode.")
-	flag.Parse()
-	return opts
-}
-
-func do_init() (flows []*ini.Section) {
-	opts := getOptions()
-	log.SetFormatter(&programFormat{})
-	log.SetOutput(os.Stdout)
-	config := getConfig(opts.cfgfile)
-	if opts.debug {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.ErrorLevel)
+func pickHook(out logoutput) log.Hook {
+	switch out {
+	case sysLog:
 		hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_DAEMON, "awslogs")
 		if err != nil {
 			log.Fatal("Unable to connect to local syslog daemon")
 		}
-		log.AddHook(hook)
-		log.SetOutput(ioutil.Discard)
+		return hook
+	case stdOut:
+		return &writerHook{out: os.Stdout}
+	case stdErr:
+		return &writerHook{out: os.Stderr}
+	case null:
+		return &writerHook{out: ioutil.Discard}
+	default:
+		return &writerHook{out: os.Stderr}
 	}
-	flows = getFlows(config)
-	return
 }
 
 func main() {
-	flows := do_init()
+	log.SetFormatter(&programFormat{})
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.ErrorLevel)
+	var cfgfile string
+	flag.StringVar(&cfgfile, "c", defaultConfigFile, "Config file location.")
+	flag.Parse()
+	config := getConfig(cfgfile)
+	settings := getMainConfig(config)
+	flows := getFlows(config)
 	cwlogs := cwlogsSession()
 	configs := createFlowCfg(flows, cwlogs)
+	log.SetOutput(ioutil.Discard)
+	hook := pickHook(settings.logOutput)
+	log.AddHook(hook)
+	log.SetLevel(settings.logLevel)
 	setupFlows(configs)
 	select {}
 }

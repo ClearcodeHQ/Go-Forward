@@ -61,9 +61,9 @@ func TestValidateSource_error(t *testing.T) {
 	}
 }
 
-func TestValidateSection_missing_key(t *testing.T) {
+func TestValidateFlowSection_missing_key(t *testing.T) {
 	sec := empty_ini_section()
-	err := validateSection(sec)
+	err := validateFlowSection(sec)
 	assert.NotNil(t, err)
 }
 
@@ -80,4 +80,44 @@ func Test_validateSyslogFormat_format(t *testing.T) {
 func Test_validateCloudwatchFormat_empty(t *testing.T) {
 	err := validateCloudwatchFormat("")
 	assert.Equal(t, errEmptyValue, err)
+}
+
+func Test_validateLogOutput_empty(t *testing.T) {
+	err := validateLogOutput("")
+	assert.Equal(t, errEmptyValue, err)
+}
+
+func Test_validateLogLevel_empty(t *testing.T) {
+	err := validateLogLevel("")
+	assert.Equal(t, errEmptyValue, err)
+}
+
+func Test_validateLogOutput_invalid(t *testing.T) {
+	err := validateLogOutput("invalid")
+	assert.Equal(t, errInvalidValue, err)
+}
+
+func Test_validateLogLevel_invalid(t *testing.T) {
+	err := validateLogLevel("invalid")
+	assert.Equal(t, errInvalidValue, err)
+}
+
+func Test_validateLogLevel_ok(t *testing.T) {
+	for _, option := range validLevelOptions {
+		assert.Nil(t, validateLogLevel(option))
+	}
+}
+
+func Test_validateLogOutput_ok(t *testing.T) {
+	for _, option := range validOutputOptions {
+		assert.Nil(t, validateLogOutput(option))
+	}
+}
+
+func Test_validateStrContains_false(t *testing.T) {
+	assert.False(t, strContains([]string{}, "needle"))
+}
+
+func Test_validateStrContains_true(t *testing.T) {
+	assert.True(t, strContains([]string{"needle"}, "needle"))
 }
