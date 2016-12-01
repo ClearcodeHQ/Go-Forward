@@ -130,6 +130,8 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 func recToDst(in <-chan logEvent, dst *destination) {
 	log.Debugf("seting token for %s", dst)
 	dst.setToken()
+	ticker := time.NewTicker(putLogEventsDelay)
+	defer ticker.Stop()
 	queue := new(eventQueue)
 	var pending eventsList
 	var uploadDone chan error
@@ -140,7 +142,7 @@ func recToDst(in <-chan logEvent, dst *destination) {
 		case result := <-uploadDone:
 			handleUploadResult(dst, result, queue, pending)
 			uploadDone = nil
-		case <-time.Tick(putLogEventsDelay):
+		case <-ticker.C:
 			/*
 				Sequence token must change in order to send next messages,
 				otherwise DataAlreadyAcceptedException is returned.
