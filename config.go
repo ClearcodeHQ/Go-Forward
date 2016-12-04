@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"text/template"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/go-ini/ini"
@@ -41,7 +42,7 @@ type mainConfig struct {
 type flowCfg struct {
 	dst      *destination
 	syslogFn syslogParser
-	format   string
+	format   *template.Template
 	recv     receiver
 }
 
@@ -130,13 +131,14 @@ func getMainConfig(config *ini.File) mainConfig {
 func getFlows(config *ini.File) (flows []flowCfg) {
 	for _, section := range config.Sections() {
 		if section.Name() != mainSectionName {
+			format, _ := template.New("").Parse(section.Key(cloudwatchFormatKey).String())
 			cfg := flowCfg{
 				dst: &destination{
 					group:  section.Key(groupKey).String(),
 					stream: section.Key(streamKey).String(),
 				},
 				recv:     newReceiver(section.Key(sourceKey).String()),
-				format:   section.Key(cloudwatchFormatKey).String(),
+				format:   format,
 				syslogFn: parserFunctions[section.Key(syslogFormatKey).String()],
 			}
 			flows = append(flows, cfg)
@@ -237,6 +239,10 @@ func validateSyslogFormat(value string) error {
 func validateCloudwatchFormat(value string) error {
 	if value == "" {
 		return errEmptyValue
+	}
+	_, err := template.New("").Parse(value)
+	if err != nil {
+		return err
 	}
 	return nil
 }

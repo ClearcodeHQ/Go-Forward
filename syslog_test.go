@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
+	"text/template"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,54 +57,47 @@ func Test_syslogMessage_render_order(t *testing.T) {
 		Syslogtag: "tag",
 		Message:   "message",
 	}
-	actual, _ := m.render("{{.Message}} {{.Syslogtag}}")
-	assert.Equal(t, "message tag", actual)
+	buf := bytes.NewBuffer([]byte{})
+	tpl, _ := template.New("").Parse("{{.Message}} {{.Syslogtag}}")
+	m.render(tpl, buf)
+	assert.Equal(t, "message tag", buf.String())
 }
 
-func Test_syslogMessage_render_Severity(t *testing.T) {
+// Assert that every exported field is rendered
+func Test_syslogMessage_render_field(t *testing.T) {
 	m := syslogMessage{
-		Severity: logInfo,
-	}
-	expected := fmt.Sprintf("%s", m.Severity)
-	actual, _ := m.render("{{.Severity}}")
-	assert.Equal(t, expected, actual)
-}
-
-func Test_syslogMessage_render_Facility(t *testing.T) {
-	m := syslogMessage{
-		Facility: logAuthpriv,
-	}
-	expected := fmt.Sprintf("%s", m.Facility)
-	actual, _ := m.render("{{.Facility}}")
-	assert.Equal(t, expected, actual)
-}
-
-func Test_syslogMessage_render_Hostname(t *testing.T) {
-	m := syslogMessage{
-		Hostname: "hostname",
-	}
-	actual, _ := m.render("{{.Hostname}}")
-	assert.Equal(t, "hostname", actual)
-}
-
-func Test_syslogMessage_render_Syslogtag(t *testing.T) {
-	m := syslogMessage{
+		Severity:  logInfo,
+		Facility:  logAuthpriv,
+		Hostname:  "hostname",
 		Syslogtag: "tag",
+		Message:   "message",
 	}
-	actual, _ := m.render("{{.Syslogtag}}")
-	assert.Equal(t, "tag", actual)
-}
-
-func Test_syslogMessage_render_Message(t *testing.T) {
-	m := syslogMessage{
-		Message: "message",
+	for field, expected := range map[string]string{
+		"Severity":  m.Severity.String(),
+		"Facility":  m.Facility.String(),
+		"Hostname":  m.Hostname,
+		"Syslogtag": m.Syslogtag,
+		"Message":   m.Message,
+	} {
+		buf := bytes.NewBuffer([]byte{})
+		tpl, _ := template.New("").Parse(fmt.Sprintf("{{.%s}}", field))
+		m.render(tpl, buf)
+		assert.Equal(t, expected, buf.String())
 	}
-	actual, _ := m.render("{{.Message}}")
-	assert.Equal(t, "message", actual)
 }
 
 func Test_syslogMessage_render_error(t *testing.T) {
 	m := syslogMessage{}
-	_, err := m.render("{{.UnexportedField}}")
-	assert.NotNil(t, err)
+	buf := bytes.NewBuffer([]byte{})
+	tpl, _ := template.New("").Parse("{{.UnexportedField}}")
+	assert.NotNil(t, m.render(tpl, buf))
+}
+
+// Assert that buffer is reset before rendering template
+func Test_syslogMessage_render_reset(t *testing.T) {
+	m := syslogMessage{}
+	buf := bytes.NewBuffer([]byte("should not be rendered"))
+	tpl, _ := template.New("").Parse("")
+	m.render(tpl, buf)
+	assert.Equal(t, "", buf.String())
 }

@@ -117,15 +117,7 @@ func (p priority) decode() (facility, severity) {
 	return facility(p / 8), severity(p % 8)
 }
 
-func (s syslogMessage) render(format string) (string, error) {
-	tmpl, err := template.New("").Parse(format)
-	if err != nil {
-		return "", err
-	}
-	buf := bytes.NewBuffer([]byte{})
-	err = tmpl.Execute(buf, s)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+func (s syslogMessage) render(tpl *template.Template, buf *bytes.Buffer) error {
+	buf.Reset()
+	return tpl.Execute(buf, s)
 }

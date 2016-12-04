@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"io"
 	"io/ioutil"
 	"log/syslog"
 	"os"
 	"os/signal"
+	"text/template"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -113,15 +115,17 @@ func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 }
 
 // Parse,filter incimming messages and send them to destination.
-func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, format string) {
+func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, tpl *template.Template) {
+	buf := bytes.NewBuffer([]byte{})
 	defer close(out)
 	for msg := range in {
 		if parsed, err := parsefn(msg); err == nil {
-			rendered, _ := parsed.render(format)
-			// Timestamp must be in milliseconds
-			event := logEvent{msg: rendered, timestamp: parsed.timestamp.Unix() * 1000}
-			if err := event.validate(); err == nil {
-				out <- event
+			if err := parsed.render(tpl, buf); err == nil {
+				// Timestamp must be in milliseconds
+				event := logEvent{msg: buf.String(), timestamp: parsed.timestamp.Unix() * 1000}
+				if err := event.validate(); err == nil {
+					out <- event
+				}
 			}
 		}
 	}
