@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"net"
 	"net/url"
 	"strings"
@@ -15,16 +14,31 @@ type receiver interface {
 	Close()
 	// Run a goroutine and pass read messages to channel
 	Receive() <-chan string
+	// Listen for incomming packets
+	Listen() error
 }
 
 type UDPreceiver struct {
 	conn *net.UDPConn
+	url  *url.URL
 	wg   *sync.WaitGroup
 }
 
 func (rec *UDPreceiver) Close() {
-	rec.conn.Close()
-	rec.wg.Wait()
+	if rec.conn != nil {
+		rec.conn.Close()
+		rec.wg.Wait()
+	}
+}
+
+func (rec *UDPreceiver) Listen() error {
+	addr, err := net.ResolveUDPAddr("udp", rec.url.Host)
+	if err != nil {
+		return err
+	}
+	conn, err := net.ListenUDP("udp", addr)
+	rec.conn = conn
+	return err
 }
 
 func (rec *UDPreceiver) Receive() <-chan string {
@@ -48,22 +62,12 @@ func (rec *UDPreceiver) Receive() <-chan string {
 	return out
 }
 
-// Create a new receiver based on passed address. This function can
-// return receivers for UDP, TCP, UNIX sockets.
-func newReceiver(url *url.URL) (rec receiver, err error) {
+// Create a new receiver based on passed address.
+func newReceiver(address string) receiver {
+	url, _ := url.Parse(address)
 	switch url.Scheme {
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", url.Host)
-		if err != nil {
-			return rec, err
-		}
-		conn, err := net.ListenUDP("udp", addr)
-		if err != nil {
-			return rec, err
-		}
-		rec = &UDPreceiver{conn: conn, wg: &sync.WaitGroup{}}
-		return rec, nil
+		return &UDPreceiver{url: url, wg: &sync.WaitGroup{}}
 	}
-	err = errors.New("Unknown url scheme.")
-	return
+	return nil
 }

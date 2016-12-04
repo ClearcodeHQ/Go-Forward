@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log/syslog"
-	"net/url"
 	"os"
 	"time"
 
@@ -13,17 +12,9 @@ import (
 	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/go-ini/ini"
 )
 
 const defaultConfigFile = "/etc/awslogs.conf"
-
-type flowCfg struct {
-	dst      *destination
-	syslogFn syslogParser
-	format   string
-	recv     receiver
-}
 
 type writerHook struct {
 	out io.Writer
@@ -77,12 +68,12 @@ func main() {
 	settings := getMainConfig(config)
 	flows := getFlows(config)
 	cwlogs := cwlogsSession()
-	configs := createFlowCfg(flows, cwlogs)
+	listenAll(flows)
 	log.SetOutput(ioutil.Discard)
 	hook := pickHook(settings.logOutput)
 	log.AddHook(hook)
 	log.SetLevel(settings.logLevel)
-	setupFlows(configs)
+	setupFlows(flows, cwlogs)
 	select {}
 }
 
@@ -92,33 +83,19 @@ func closeAll(flows []flowCfg) {
 	}
 }
 
-func createFlowCfg(sections []*ini.Section, svc *cloudwatchlogs.CloudWatchLogs) (flows []flowCfg) {
-	for _, section := range sections {
-		url, _ := url.Parse(section.Key("source").String())
-		rec, err := newReceiver(url)
-		dst := &destination{
-			group:  section.Key("group").String(),
-			stream: section.Key("stream").String(),
-			svc:    svc,
-		}
-		if err != nil {
-			closeAll(flows)
+func listenAll(flows []flowCfg) {
+	for _, flow := range flows {
+		if err := flow.recv.Listen(); err != nil {
 			log.Fatal(err)
+			closeAll(flows)
 		}
-		cfg := flowCfg{
-			dst:      dst,
-			recv:     rec,
-			format:   section.Key("cloudwatch_format").String(),
-			syslogFn: parserFunctions[section.Key("syslog_format").String()],
-		}
-		flows = append(flows, cfg)
 	}
-	return
 }
 
-func setupFlows(flows []flowCfg) {
+func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 	log.Debug("seting flow")
 	for _, flow := range flows {
+		flow.dst.svc = service
 		in := flow.recv.Receive()
 		out := make(chan logEvent)
 		go convertEvents(in, out, flow.syslogFn, flow.format)

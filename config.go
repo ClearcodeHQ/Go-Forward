@@ -15,6 +15,12 @@ const (
 	logOutputKey = "log_output"
 	logLevelKey  = "log_level"
 
+	sourceKey           = "source"
+	groupKey            = "group"
+	streamKey           = "stream"
+	cloudwatchFormatKey = "cloudwatch_format"
+	syslogFormatKey     = "syslog_format"
+
 	debugLevelOption = "debug"
 	infoLevelOption  = "info"
 	errorLevelOption = "error"
@@ -30,6 +36,13 @@ type logoutput uint8
 type mainConfig struct {
 	logLevel  log.Level
 	logOutput logoutput
+}
+
+type flowCfg struct {
+	dst      *destination
+	syslogFn syslogParser
+	format   string
+	recv     receiver
 }
 
 const (
@@ -68,11 +81,11 @@ var validLevelOptions = []string{
 type validateKeyFunc func(value string) error
 
 var keyValidators = map[string]validateKeyFunc{
-	"group":             validateGroup,
-	"stream":            validateStrean,
-	"source":            validateSource,
-	"syslog_format":     validateSyslogFormat,
-	"cloudwatch_format": validateCloudwatchFormat,
+	groupKey:            validateGroup,
+	streamKey:           validateStrean,
+	sourceKey:           validateSource,
+	syslogFormatKey:     validateSyslogFormat,
+	cloudwatchFormatKey: validateCloudwatchFormat,
 }
 
 var mainKeyValidators = map[string]validateKeyFunc{
@@ -113,11 +126,20 @@ func getMainConfig(config *ini.File) mainConfig {
 	}
 }
 
-// Return all flow sections
-func getFlows(config *ini.File) (flows []*ini.Section) {
+// Return all flow configurations
+func getFlows(config *ini.File) (flows []flowCfg) {
 	for _, section := range config.Sections() {
 		if section.Name() != mainSectionName {
-			flows = append(flows, section)
+			cfg := flowCfg{
+				dst: &destination{
+					group:  section.Key(groupKey).String(),
+					stream: section.Key(streamKey).String(),
+				},
+				recv:     newReceiver(section.Key(sourceKey).String()),
+				format:   section.Key(cloudwatchFormatKey).String(),
+				syslogFn: parserFunctions[section.Key(syslogFormatKey).String()],
+			}
+			flows = append(flows, cfg)
 		}
 	}
 	return
