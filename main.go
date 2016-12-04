@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log/syslog"
 	"os"
+	"os/signal"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -74,7 +75,15 @@ func main() {
 	log.AddHook(hook)
 	log.SetLevel(settings.logLevel)
 	setupFlows(flows, cwlogs)
-	select {}
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+	select {
+	case <-sigint:
+		log.Infof("got SIGINT")
+		break
+	}
+	log.Info("closing connections")
+	closeAll(flows)
 }
 
 func closeAll(flows []flowCfg) {
