@@ -61,6 +61,7 @@ func pickHook(out logoutput) log.Hook {
 }
 
 func main() {
+	debug()
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.ErrorLevel)
