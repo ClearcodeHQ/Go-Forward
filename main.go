@@ -117,7 +117,6 @@ func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 // Parse,filter incimming messages and send them to destination.
 func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, tpl *template.Template) {
 	buf := bytes.NewBuffer([]byte{})
-	defer close(out)
 	for msg := range in {
 		if parsed, err := parsefn(msg); err == nil {
 			if err := parsed.render(tpl, buf); err == nil {
@@ -129,6 +128,7 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 			}
 		}
 	}
+	out = nil
 }
 
 // Buffer received events and send them to cloudwatch.
