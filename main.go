@@ -143,7 +143,9 @@ func recToDst(in <-chan logEvent, dst *destination) {
 	for {
 		select {
 		case event := <-in:
-			queue.add(event)
+			if queue.num() < maxBatchEvents {
+				queue.add(event)
+			}
 		case result := <-uploadDone:
 			handleUploadResult(dst, result, queue, pending)
 			uploadDone = nil
