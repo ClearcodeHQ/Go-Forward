@@ -13,7 +13,6 @@ This program's purpose is to forward all logs received from a unix/ip socket and
 ```
 -c string
 	Config file location. (default "/etc/logs_agent.cfg")
--d	Turn on debug mode
 ```
 See [config.ini](config.ini) for possible configuration options.
 

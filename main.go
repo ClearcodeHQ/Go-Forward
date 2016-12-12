@@ -20,7 +20,7 @@ import (
 
 var version string
 
-const defaultConfigFile = "/etc/awslogs.conf"
+const defaultConfigFile = "/etc/logs_agent.cfg"
 
 type writerHook struct {
 	out io.Writer
