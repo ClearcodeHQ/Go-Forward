@@ -139,16 +139,16 @@ func recToDst(in <-chan logEvent, dst *destination) {
 	ticker := time.NewTicker(putLogEventsDelay)
 	defer ticker.Stop()
 	queue := new(eventQueue)
-	var pending eventsList
-	var uploadDone chan error
+	var batch eventsList
+	var uploadDone chan batchFunc
 	for {
 		select {
 		case event := <-in:
 			if queue.num() < maxBatchEvents {
 				queue.add(event)
 			}
-		case result := <-uploadDone:
-			handleUploadResult(dst, result, queue, pending)
+		case fn := <-uploadDone:
+			fn(batch, queue)
 			uploadDone = nil
 		case <-ticker.C:
 			/*
@@ -157,30 +157,33 @@ func recToDst(in <-chan logEvent, dst *destination) {
 				Only one upload can proceed / tick / stream.
 			*/
 			if !queue.empty() && uploadDone == nil {
-				pending = queue.getBatch()
-				log.Debugf("%s sending %d messages", dst, len(pending))
-				uploadDone = make(chan error)
-				go func() {
-					uploadDone <- dst.upload(pending)
-				}()
+				batch = queue.getBatch()
+				uploadDone = make(chan batchFunc)
+				go upload(dst, batch, uploadDone)
 			}
 		}
 	}
 }
 
-func handleUploadResult(dst *destination, result error, queue *eventQueue, pending eventsList) {
+func upload(dst *destination, batch eventsList, out chan<- batchFunc) {
+	log.Debugf("%s sending %d messages", dst, len(batch))
+	result := dst.upload(batch)
+	out <- handleResult(dst, result)
+}
+
+func handleResult(dst *destination, result error) batchFunc {
 	switch err := result.(type) {
 	case awserr.Error:
 		switch err.Code() {
 		case "InvalidSequenceTokenException":
 			log.Debugf("%s invalid sequence token", dst)
 			dst.setToken()
-			queue.add(pending...)
+			return addBack
 		case "ResourceNotFoundException":
 			log.Debugf("%s missing group/stream", dst)
 			dst.create()
 			dst.token = nil
-			queue.add(pending...)
+			return addBack
 		default:
 			log.Errorf("upload to %s failed %s %s", dst, err.Code(), err.Message())
 		}
@@ -188,5 +191,13 @@ func handleUploadResult(dst *destination, result error, queue *eventQueue, pendi
 	default:
 		log.Errorf("upload to %s failed %s ", dst, result)
 	}
-	log.Debugf("%s %d messages in queue", dst, queue.num())
+	return discard
 }
+
+type batchFunc func(batch eventsList, queue *eventQueue)
+
+func addBack(batch eventsList, queue *eventQueue) {
+	queue.add(batch...)
+}
+
+func discard(batch eventsList, queue *eventQueue) {}
