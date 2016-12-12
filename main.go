@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log/syslog"
@@ -16,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
+
+var version string
 
 const defaultConfigFile = "/etc/awslogs.conf"
 
@@ -60,14 +63,23 @@ func pickHook(out logoutput) log.Hook {
 	}
 }
 
-func main() {
+func init() {
 	debug()
+}
+
+func main() {
+	var cfgfile string
+	var print_version bool
+	flag.StringVar(&cfgfile, "c", defaultConfigFile, "Config file location.")
+	flag.BoolVar(&print_version, "v", false, "Print version and exit.")
+	flag.Parse()
+	if print_version {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.ErrorLevel)
-	var cfgfile string
-	flag.StringVar(&cfgfile, "c", defaultConfigFile, "Config file location.")
-	flag.Parse()
 	config := getConfig(cfgfile)
 	settings := getMainConfig(config)
 	flows := getFlows(config)

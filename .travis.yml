@@ -23,7 +23,8 @@ after_success:
 
 before_deploy:
   - go get github.com/mitchellh/gox
-  - gox -os="linux freebsd" -arch="amd64 386" -output "dist/{{.OS}}_{{.Arch}}_awslogs"
+  - export VERSION=`git describe --tags`
+  - gox -os="linux freebsd" -arch="amd64 386" -output "dist/{{.OS}}_{{.Arch}}_awslogs" -ldflags "-X main.version=$VERSION"
 
 deploy:
   provider: releases
