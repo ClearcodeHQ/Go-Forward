@@ -85,11 +85,11 @@ func main() {
 		log.Infof("got SIGINT")
 		break
 	}
-	log.Info("closing connections")
 	closeAll(flows)
 }
 
 func closeAll(flows []flowCfg) {
+	log.Info("closing connections")
 	for _, flow := range flows {
 		flow.recv.Close()
 	}
@@ -98,8 +98,8 @@ func closeAll(flows []flowCfg) {
 func listenAll(flows []flowCfg) {
 	for _, flow := range flows {
 		if err := flow.recv.Listen(); err != nil {
-			log.Fatal(err)
 			closeAll(flows)
+			log.Fatal(err)
 		}
 	}
 }
