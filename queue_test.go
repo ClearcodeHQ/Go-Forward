@@ -67,7 +67,7 @@ func Test_timeIndex_multi(t *testing.T) {
 	assert.Equal(t, 2, timeIndex(events))
 }
 
-// Assert that batch time span does not exceed it allowed maximum
+// Assert that batch time span does not exceed its allowed maximum
 func Test_timeIndex_single(t *testing.T) {
 	events := eventsList{
 		logEvent{timestamp: maxBatchTimeSpan},

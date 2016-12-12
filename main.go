@@ -127,7 +127,7 @@ func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 	}
 }
 
-// Parse,filter incimming messages and send them to destination.
+// Parse, filter incoming messages and send them to destination.
 func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, tpl *template.Template) {
 	buf := bytes.NewBuffer([]byte{})
 	for msg := range in {
@@ -146,7 +146,7 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 
 // Buffer received events and send them to cloudwatch.
 func recToDst(in <-chan logEvent, dst *destination) {
-	log.Debugf("seting token for %s", dst)
+	log.Debugf("setting token for %s", dst)
 	dst.setToken()
 	ticker := time.NewTicker(putLogEventsDelay)
 	defer ticker.Stop()
