@@ -20,5 +20,5 @@ See [config.ini](config.ini) for possible configuration options.
 ### Program behaviour:
 * Logs that are too old are discarded.
 * Logs that exceed their allowed size are discarded.
-* Incomming messages timestamps are only used to set cloudwatch logs
+* Incoming message timestamps are only used to set cloudwatch logs
 timestamp value. They are not written in message body.

@@ -14,7 +14,7 @@ type receiver interface {
 	Close()
 	// Run a goroutine and pass read messages to channel
 	Receive() <-chan string
-	// Listen for incomming packets
+	// Listen for incoming packets
 	Listen() error
 }
 

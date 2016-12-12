@@ -95,7 +95,7 @@ func (dst *destination) setToken() error {
 		})
 }
 
-// Create log group and stream. If an error is returned, PutLogEvents can not succeed.
+// Create log group and stream. If an error is returned, PutLogEvents cannot succeed.
 func (dst *destination) create() (err error) {
 	err = dst.createGroup()
 	if err != nil {
