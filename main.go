@@ -9,6 +9,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"syscall"
 	"text/template"
 	"time"
 
@@ -90,11 +91,11 @@ func main() {
 	log.AddHook(hook)
 	log.SetLevel(settings.logLevel)
 	setupFlows(flows, cwlogs)
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	select {
-	case <-sigint:
-		log.Infof("got SIGINT")
+	case <-signals:
+		log.Infof("got SIGINT/SIGTERM")
 		break
 	}
 	closeAll(flows)
