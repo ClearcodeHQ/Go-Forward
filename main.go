@@ -130,6 +130,7 @@ func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 
 // Parse, filter incoming messages and send them to destination.
 func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, tpl *template.Template) {
+	defer close(out)
 	buf := bytes.NewBuffer([]byte{})
 	for msg := range in {
 		if parsed, err := parsefn(msg); err == nil {
@@ -142,7 +143,6 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 			}
 		}
 	}
-	out = nil
 }
 
 // Buffer received events and send them to cloudwatch.
@@ -154,9 +154,13 @@ func recToDst(in <-chan logEvent, dst *destination) {
 	queue := new(eventQueue)
 	var batch eventsList
 	var uploadDone chan batchFunc
+BufferLoop:
 	for {
 		select {
-		case event := <-in:
+		case event, ok := <-in:
+			if !ok {
+				break BufferLoop
+			}
 			if queue.num() < maxBatchEvents {
 				queue.add(event)
 			}
