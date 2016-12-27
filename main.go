@@ -133,15 +133,24 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 	defer close(out)
 	buf := bytes.NewBuffer([]byte{})
 	for msg := range in {
-		if parsed, err := parsefn(msg); err == nil {
-			if err := parsed.render(tpl, buf); err == nil {
-				// Timestamp must be in milliseconds
-				event := logEvent{msg: buf.String(), timestamp: parsed.timestamp.Unix() * 1000}
-				if err := event.validate(); err == nil {
-					out <- event
-				}
-			}
+		parsed, err := parsefn(msg)
+		if err != nil {
+			continue
 		}
+		err = parsed.render(tpl, buf)
+		if err != nil {
+			continue
+		}
+		// Timestamp must be in milliseconds
+		event := logEvent{
+			msg:       buf.String(),
+			timestamp: parsed.timestamp.Unix() * 1000,
+		}
+		err = event.validate()
+		if err != nil {
+			continue
+		}
+		out <- event
 	}
 }
 
