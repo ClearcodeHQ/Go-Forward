@@ -163,12 +163,12 @@ func recToDst(in <-chan logEvent, dst *destination) {
 	queue := new(eventQueue)
 	var batch eventsList
 	var uploadDone chan batchFunc
-BufferLoop:
 	for {
 		select {
-		case event, ok := <-in:
-			if !ok {
-				break BufferLoop
+		case event, opened := <-in:
+			if !opened {
+				in = nil
+				break
 			}
 			if queue.num() < maxBatchEvents {
 				queue.add(event)
