@@ -9,6 +9,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"text/template"
 	"time"
@@ -68,6 +69,8 @@ func init() {
 	debug()
 }
 
+var wg = &sync.WaitGroup{}
+
 func main() {
 	var cfgfile string
 	var print_version bool
@@ -99,6 +102,8 @@ func main() {
 		break
 	}
 	closeAll(flows)
+	log.Debugf("waiting for upload to finish")
+	wg.Wait()
 }
 
 func closeAll(flows []flowCfg) {
@@ -124,7 +129,7 @@ func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 		in := flow.recv.Receive()
 		out := make(chan logEvent)
 		go convertEvents(in, out, flow.syslogFn, flow.format)
-		go recToDst(out, flow.dst)
+		go recToDst(out, flow.dst, putLogEventsDelay)
 	}
 }
 
@@ -155,14 +160,17 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 }
 
 // Buffer received events and send them to cloudwatch.
-func recToDst(in <-chan logEvent, dst *destination) {
-	log.Debugf("setting token for %s", dst)
+func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
+	wg.Add(1)
+	defer wg.Done()
+	log.Debugf("%s setting token", dst)
 	dst.setToken()
-	ticker := time.NewTicker(putLogEventsDelay)
+	ticker := time.NewTicker(delay)
+	log.Debugf("%s timer set to %s", dst, delay)
 	defer ticker.Stop()
 	queue := new(eventQueue)
-	var batch eventsList
 	var uploadDone chan batchFunc
+	var batch eventsList
 	for {
 		select {
 		case event, opened := <-in:
@@ -177,24 +185,31 @@ func recToDst(in <-chan logEvent, dst *destination) {
 			fn(batch, queue)
 			uploadDone = nil
 		case <-ticker.C:
-			/*
-				Sequence token must change in order to send next messages,
-				otherwise DataAlreadyAcceptedException is returned.
-				Only one upload can proceed / tick / stream.
-			*/
+			log.Debugf("%s tick", dst)
 			if !queue.empty() && uploadDone == nil {
-				batch = queue.getBatch()
-				uploadDone = make(chan batchFunc)
-				go upload(dst, batch, uploadDone)
+				uploadDone, batch = upload(dst, queue)
 			}
+		}
+		if in == nil && queue.empty() {
+			break
 		}
 	}
 }
 
-func upload(dst *destination, batch eventsList, out chan<- batchFunc) {
+/*
+	Sequence token must change in order to send next messages,
+	otherwise DataAlreadyAcceptedException is returned.
+	Only one upload can proceed / tick / stream.
+*/
+func upload(dst *destination, queue *eventQueue) (out chan batchFunc, batch eventsList) {
+	batch = queue.getBatch()
+	out = make(chan batchFunc)
 	log.Debugf("%s sending %d messages", dst, len(batch))
-	result := dst.upload(batch)
-	out <- handleResult(dst, result)
+	go func() {
+		result := dst.upload(batch)
+		out <- handleResult(dst, result)
+	}()
+	return out, batch
 }
 
 func handleResult(dst *destination, result error) batchFunc {
