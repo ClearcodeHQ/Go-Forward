@@ -168,7 +168,7 @@ func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
 	ticker := time.NewTicker(delay)
 	log.Debugf("%s timer set to %s", dst, delay)
 	defer ticker.Stop()
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 10000}
 	var uploadDone chan batchFunc
 	var batch eventsList
 	for {
@@ -178,9 +178,7 @@ func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
 				in = nil
 				break
 			}
-			if queue.num() < maxBatchEvents {
-				queue.add(event)
-			}
+			queue.add(event)
 		case fn := <-uploadDone:
 			fn(batch, queue)
 			uploadDone = nil

@@ -8,25 +8,25 @@ import (
 )
 
 func Test_queue_empty(t *testing.T) {
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 1}
 	assert.True(t, queue.empty())
 }
 
 func Test_queue_not_empty(t *testing.T) {
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 1}
 	queue.add(logEvent{})
 	assert.False(t, queue.empty())
 }
 
 func Test_queue_length(t *testing.T) {
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 1}
 	queue.add(logEvent{})
 	assert.Equal(t, 1, queue.num())
 }
 
 // Assert that event is added at the end of slice.
 func Test_queue_add(t *testing.T) {
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 3}
 	queue.add(logEvent{msg: "first"})
 	queue.add(logEvent{msg: "second"})
 	queue.add(logEvent{msg: "third"})
@@ -40,7 +40,7 @@ func Test_queue_add(t *testing.T) {
 
 // Assert that batch is sorted.
 func Test_queue_sorted_batch(t *testing.T) {
-	queue := new(eventQueue)
+	queue := &eventQueue{max_size: 2}
 	queue.add(logEvent{timestamp: 2})
 	queue.add(logEvent{timestamp: 1})
 	assert.Equal(t, logEvent{timestamp: 1}, queue.getBatch()[0])

@@ -27,11 +27,14 @@ func (m eventsList) Less(i, j int) bool {
 }
 
 type eventQueue struct {
-	events eventsList
+	events   eventsList
+	max_size int
 }
 
 func (q *eventQueue) add(event ...logEvent) {
-	q.events = append(q.events, event...)
+	left := q.max_size - len(q.events)
+	many := event[:min(left, len(event))]
+	q.events = append(q.events, many...)
 }
 
 func (q *eventQueue) getBatch() (batch eventsList) {
@@ -87,4 +90,14 @@ func timeIndex(events eventsList) (index int) {
 		index = i + 1
 	}
 	return index
+}
+
+func min(ints ...int) int {
+	m := ints[0]
+	for _, i := range ints {
+		if i < m {
+			m = i
+		}
+	}
+	return m
 }
