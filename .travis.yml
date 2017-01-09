@@ -10,21 +10,16 @@ go:
 - 1.7
 
 before_install:
-- go get golang.org/x/tools/cmd/goimports
-- go get github.com/mattn/goveralls
+- make dep
 
 script:
-- go vet
-- go test -race
-- ./.travis.goimports.sh
+- make test
 
 after_success:
-- $HOME/gopath/bin/goveralls -service=travis-ci
+- make coveralls
 
 before_deploy:
-  - go get github.com/mitchellh/gox
-  - export VERSION=`git describe --tags`
-  - gox -os="linux freebsd" -arch="amd64 386" -output "dist/{{.OS}}_{{.Arch}}_awslogs" -ldflags "-X main.version=$VERSION"
+- make dist
 
 deploy:
   provider: releases
