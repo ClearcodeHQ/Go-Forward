@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log/syslog"
+	"math/rand"
 	"os"
 	"os/signal"
 	"sync"
@@ -165,9 +166,10 @@ func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
 	defer wg.Done()
 	log.Debugf("%s setting token", dst)
 	dst.setToken()
-	ticker := time.NewTicker(delay)
+	var failed_attempt uint = 0
+	timer := time.NewTimer(delay)
 	log.Debugf("%s timer set to %s", dst, delay)
-	defer ticker.Stop()
+	defer timer.Stop()
 	queue := &eventQueue{max_size: 10000}
 	var uploadDone chan batchFunc
 	var batch eventsList
@@ -181,8 +183,12 @@ func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
 			queue.add(event)
 		case fn := <-uploadDone:
 			fn(batch, queue)
+			if fn == addBack {
+				failed_attempt += 1
+			}
+			timer.Reset(backoff(failed_attempt, delay))
 			uploadDone = nil
-		case <-ticker.C:
+		case <-timer.C:
 			log.Debugf("%s tick", dst)
 			if !queue.empty() && uploadDone == nil {
 				uploadDone, batch = upload(dst, queue)
@@ -214,6 +220,9 @@ func handleResult(dst *destination, result error) batchFunc {
 	switch err := result.(type) {
 	case awserr.Error:
 		switch err.Code() {
+		case "ThrottlingException":
+			log.Debugf("%s rate exceeded", dst)
+			return addBack
 		case "InvalidSequenceTokenException":
 			log.Debugf("%s invalid sequence token", dst)
 			dst.setToken()
@@ -240,3 +249,11 @@ func addBack(batch eventsList, queue *eventQueue) {
 }
 
 func discard(batch eventsList, queue *eventQueue) {}
+
+// Calculate backoff delay based on attempt count.
+func backoff(attempt uint, delay time.Duration) time.Duration {
+	rand.Seed(time.Now().Unix())
+	slots := (1 << attempt)
+	max := int(delay / time.Millisecond)
+	return time.Duration(rand.Intn(max*slots))*time.Millisecond + delay
+}
