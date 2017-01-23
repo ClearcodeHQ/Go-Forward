@@ -13,4 +13,5 @@ var (
 	errNameTooLong          = errors.New("name too long")
 	errInvalidScheme        = errors.New("invalid network scheme")
 	errInvalidFormat        = errors.New("invalid format")
+	errTooSmall             = errors.New("too small value")
 )

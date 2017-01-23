@@ -21,6 +21,8 @@ const (
 	streamKey           = "stream"
 	cloudwatchFormatKey = "cloudwatch_format"
 	syslogFormatKey     = "syslog_format"
+	queueSizeKey        = "queue_size"
+	uploadDelayKey      = "upload_delay"
 
 	debugLevelOption = "debug"
 	infoLevelOption  = "info"
@@ -40,10 +42,12 @@ type mainConfig struct {
 }
 
 type flowCfg struct {
-	dst      *destination
-	syslogFn syslogParser
-	format   *template.Template
-	recv     receiver
+	dst         *destination
+	syslogFn    syslogParser
+	format      *template.Template
+	recv        receiver
+	uploadDelay uint16
+	queueSize   uint16
 }
 
 const (
@@ -77,21 +81,6 @@ var validLevelOptions = []string{
 	debugLevelOption,
 	infoLevelOption,
 	errorLevelOption,
-}
-
-type validateKeyFunc func(value string) error
-
-var keyValidators = map[string]validateKeyFunc{
-	groupKey:            validateGroup,
-	streamKey:           validateStrean,
-	sourceKey:           validateSource,
-	syslogFormatKey:     validateSyslogFormat,
-	cloudwatchFormatKey: validateCloudwatchFormat,
-}
-
-var mainKeyValidators = map[string]validateKeyFunc{
-	logLevelKey:  validateLogLevel,
-	logOutputKey: validateLogOutput,
 }
 
 func getConfig(file string) (config *ini.File) {
@@ -160,19 +149,14 @@ func validateMainSection(section *ini.Section) error {
 }
 
 func validateFlowSection(section *ini.Section) error {
-	for key, keyfunc := range keyValidators {
-		if !section.HasKey(key) {
-			return fmt.Errorf("missing key %s in section %s", key, section.Name())
-		}
-		if err := keyfunc(section.Key(key).String()); err != nil {
-			return fmt.Errorf("bad value of %s in section %s: %s", key, section.Name(), err)
-		}
-	}
-	return nil
 }
 
 // Validate source URL
-func validateSource(value string) error {
+func validateSource(section *ini.Section) error {
+	if !section.HasKey(sourceKey) {
+		return fmt.Errorf("missing key %s in section %s", sourceKey, section.Name())
+	}
+	value := section.Key(sourceKey).String()
 	uri, err := url.Parse(value)
 	if err != nil {
 		return err
@@ -193,7 +177,11 @@ http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLo
 Log group names can be between 1 and 512 characters long.
 Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forward slash), and '.' (period).
 */
-func validateGroup(value string) error {
+func validateGroup(section *ini.Section) error {
+	if !section.HasKey(groupKey) {
+		return fmt.Errorf("missing key %s in section %s", groupKey, section.Name())
+	}
+	value := section.Key(groupKey).String()
 	if value == "" {
 		return errEmptyValue
 	}
@@ -213,7 +201,11 @@ http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLo
 Log stream names can be between 1 and 512 characters long
 The ':' colon character is not allowed.
 */
-func validateStrean(value string) error {
+func validateStrean(section *ini.Section) error {
+	if !section.HasKey(streamKey) {
+		return fmt.Errorf("missing key %s in section %s", streamKey, section.Name())
+	}
+	value := section.Key(streamKey).String()
 	if value == "" {
 		return errEmptyValue
 	}
@@ -226,7 +218,11 @@ func validateStrean(value string) error {
 	return nil
 }
 
-func validateSyslogFormat(value string) error {
+func validateSyslogFormat(section *ini.Section) error {
+	if !section.HasKey(syslogFormatKey) {
+		return fmt.Errorf("missing key %s in section %s", syslogFormatKey, section.Name())
+	}
+	value := section.Key(syslogFormatKey).String()
 	if value == "" {
 		return errEmptyValue
 	}
@@ -236,13 +232,34 @@ func validateSyslogFormat(value string) error {
 	return nil
 }
 
-func validateCloudwatchFormat(value string) error {
+func validateCloudwatchFormat(section *ini.Section) error {
+	if !section.HasKey(cloudwatchFormatKey) {
+		return fmt.Errorf("missing key %s in section %s", cloudwatchFormatKey, section.Name())
+	}
+	value := section.Key(cloudwatchFormatKey).String()
 	if value == "" {
 		return errEmptyValue
 	}
 	_, err := template.New("").Parse(value)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateQueueSize(section *ini.Section) error {
+	if section.HasKey(sourceKey) {
+		value, _ := section.Key(queueSizeKey).Uint()
+		if value < 0 {
+			return errInvalidValue
+		}
+	}
+	return nil
+}
+
+func validateUploadDelay(value uint) error {
+	if value < 200 {
+		return errTooSmall
 	}
 	return nil
 }
