@@ -170,9 +170,7 @@ func recToDst(in <-chan logEvent, cfg *FlowCfg, service *cloudwatchlogs.CloudWat
 	}
 	log.Debugf("%s setting token", dst)
 	dst.setToken()
-	delay := time.Duration(cfg.UploadDelay) * time.Millisecond
-	ticker := time.NewTicker(delay)
-	log.Debugf("%s timer set to %s", dst, delay)
+	ticker := newDelayTicker(cfg.UploadDelay, dst)
 	defer ticker.Stop()
 	queue := &eventQueue{max_size: cfg.QueueSize}
 	var uploadDone chan batchFunc
@@ -198,6 +196,12 @@ func recToDst(in <-chan logEvent, cfg *FlowCfg, service *cloudwatchlogs.CloudWat
 			break
 		}
 	}
+}
+
+func newDelayTicker(delay uint16, dst *destination) *time.Ticker {
+	d := time.Duration(delay) * time.Millisecond
+	log.Debugf("%s timer set to %s", dst, d)
+	return time.NewTicker(d)
 }
 
 /*
