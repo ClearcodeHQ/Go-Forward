@@ -109,11 +109,11 @@ func Test_validateLogOutput_ok(t *testing.T) {
 }
 
 func Test_validateStrContains_false(t *testing.T) {
-	assert.False(t, strContains([]string{}, "needle"))
+	assert.False(t, strIn([]string{}, "needle"))
 }
 
 func Test_validateStrContains_true(t *testing.T) {
-	assert.True(t, strContains([]string{"needle"}, "needle"))
+	assert.True(t, strIn([]string{"needle"}, "needle"))
 }
 
 func Test_validateUploadDelay_ok(t *testing.T) {

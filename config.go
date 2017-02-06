@@ -277,7 +277,7 @@ func validateLogOutput(value string) error {
 	if value == "" {
 		return errEmptyValue
 	}
-	if !strContains(validOutputOptions, value) {
+	if !strIn(validOutputOptions, value) {
 		return errInvalidValue
 	}
 	return nil
@@ -287,13 +287,13 @@ func validateLogLevel(value string) error {
 	if value == "" {
 		return errEmptyValue
 	}
-	if !strContains(validLevelOptions, value) {
+	if !strIn(validLevelOptions, value) {
 		return errInvalidValue
 	}
 	return nil
 }
 
-func strContains(haystack []string, needle string) bool {
+func strIn(haystack []string, needle string) bool {
 	for _, elem := range haystack {
 		if elem == needle {
 			return true
