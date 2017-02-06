@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	minUploadDelay = 200
+
 	mainSectionName = "main"
 
 	logOutputKey = "log_output"
@@ -21,6 +23,8 @@ const (
 	streamKey           = "stream"
 	cloudwatchFormatKey = "cloudwatch_format"
 	syslogFormatKey     = "syslog_format"
+	queueSizeKey        = "queue_size"
+	uploadDelayKey      = "upload_delay"
 
 	debugLevelOption = "debug"
 	infoLevelOption  = "info"
@@ -34,16 +38,25 @@ const (
 
 type logoutput uint8
 
-type mainConfig struct {
-	logLevel  log.Level
-	logOutput logoutput
+type Configuration interface {
+	GetMain() *MainCfg
+	GetFlows() []*FlowCfg
+	Validate() error
 }
 
-type flowCfg struct {
-	dst      *destination
-	syslogFn syslogParser
-	format   *template.Template
-	recv     receiver
+type MainCfg struct {
+	LogLevel  string `ini:"log_level"`
+	LogOutput string `ini:"log_output"`
+}
+
+type FlowCfg struct {
+	Group            string `ini:"group"`
+	Stream           string `ini:"stream"`
+	SyslogFormat     string `ini:"syslog_format"`
+	CloudwatchFormat string `ini:"cloudwatch_format"`
+	Source           string `ini:"source"`
+	UploadDelay      uint16 `ini:"upload_delay"`
+	QueueSize        uint16 `ini:"queue_size"`
 }
 
 const (
@@ -79,100 +92,102 @@ var validLevelOptions = []string{
 	errorLevelOption,
 }
 
-type validateKeyFunc func(value string) error
-
-var keyValidators = map[string]validateKeyFunc{
-	groupKey:            validateGroup,
-	streamKey:           validateStrean,
-	sourceKey:           validateSource,
-	syslogFormatKey:     validateSyslogFormat,
-	cloudwatchFormatKey: validateCloudwatchFormat,
+type IniConfig struct {
+	config *ini.File
 }
 
-var mainKeyValidators = map[string]validateKeyFunc{
-	logLevelKey:  validateLogLevel,
-	logOutputKey: validateLogOutput,
-}
-
-func getConfig(file string) (config *ini.File) {
+func NewIniConfig(file string) Configuration {
 	config, err := ini.Load(file)
 	if err != nil {
 		log.Fatalf("could not read config file %s", err)
 	}
 	// Remove unused default section
 	config.DeleteSection(ini.DEFAULT_SECTION)
-	for _, section := range config.Sections() {
-		if section.Name() != mainSectionName {
-			err := validateFlowSection(section)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-		if section.Name() == mainSectionName {
-			err := validateMainSection(section)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-	return
+	return &IniConfig{config: config}
 }
 
-// Return main config from section
-func getMainConfig(config *ini.File) mainConfig {
-	section := config.Section(mainSectionName)
-	return mainConfig{
-		logLevel:  strToLevel[section.Key(logLevelKey).In(errorLevelOption, validLevelOptions)],
-		logOutput: strToOutput[section.Key(logOutputKey).In(syslogOutputOption, validOutputOptions)],
+func (cfg IniConfig) GetMain() *MainCfg {
+	main := new(MainCfg)
+	// Set default values
+	main.LogLevel = "error"
+	main.LogOutput = "syslog"
+	err := cfg.config.Section(mainSectionName).MapTo(main)
+	if err != nil {
+		log.Fatalf("could not map section %s: %s", mainSectionName, err)
 	}
+	return main
 }
 
 // Return all flow configurations
-func getFlows(config *ini.File) (flows []flowCfg) {
-	for _, section := range config.Sections() {
+func (cfg IniConfig) GetFlows() (flows []*FlowCfg) {
+	for _, section := range cfg.config.Sections() {
 		if section.Name() != mainSectionName {
-			format, _ := template.New("").Parse(section.Key(cloudwatchFormatKey).String())
-			cfg := flowCfg{
-				dst: &destination{
-					group:  section.Key(groupKey).String(),
-					stream: section.Key(streamKey).String(),
-				},
-				recv:     newReceiver(section.Key(sourceKey).String()),
-				format:   format,
-				syslogFn: parserFunctions[section.Key(syslogFormatKey).String()],
+			flow := new(FlowCfg)
+			// Set default values
+			flow.UploadDelay = minUploadDelay
+			flow.QueueSize = 50000
+			err := section.MapTo(flow)
+			if err != nil {
+				log.Fatalf("could not map section %s: %s", mainSectionName, err)
 			}
-			flows = append(flows, cfg)
+			flows = append(flows, flow)
 		}
 	}
 	return
 }
 
-func validateMainSection(section *ini.Section) error {
-	for key, keyfunc := range mainKeyValidators {
-		if !section.HasKey(key) {
-			return fmt.Errorf("missing key %s in section %s", key, section.Name())
-		}
-		if err := keyfunc(section.Key(key).String()); err != nil {
-			return fmt.Errorf("bad value of %s in section %s: %s", key, section.Name(), err)
+func (cfg IniConfig) Validate() error {
+	if err := validateMainCfg(cfg.GetMain()); err != nil {
+		return fmt.Errorf("error while validating main section: %s", err)
+	}
+	for _, flow := range cfg.GetFlows() {
+		if err := validateFlowCfg(flow); err != nil {
+			return fmt.Errorf("error while validating flow section: %s", err)
 		}
 	}
 	return nil
 }
 
-func validateFlowSection(section *ini.Section) error {
-	for key, keyfunc := range keyValidators {
-		if !section.HasKey(key) {
-			return fmt.Errorf("missing key %s in section %s", key, section.Name())
-		}
-		if err := keyfunc(section.Key(key).String()); err != nil {
-			return fmt.Errorf("bad value of %s in section %s: %s", key, section.Name(), err)
-		}
+func validateMainCfg(cfg *MainCfg) error {
+	if err := validateLogLevel(cfg.LogLevel); err != nil {
+		return fmt.Errorf("log_level %s", err)
+	}
+	if err := validateLogOutput(cfg.LogOutput); err != nil {
+		return fmt.Errorf("log_output %s", err)
+	}
+	return nil
+}
+
+func validateFlowCfg(cfg *FlowCfg) error {
+	if err := validateQueueSize(cfg.QueueSize); err != nil {
+		return err
+	}
+	if err := validateGroup(cfg.Group); err != nil {
+		return err
+	}
+	if err := validateStrean(cfg.Stream); err != nil {
+		return err
+	}
+	if err := validateUploadDelay(cfg.UploadDelay); err != nil {
+		return err
+	}
+	if err := validateSource(cfg.Source); err != nil {
+		return err
+	}
+	if err := validateCloudwatchFormat(cfg.CloudwatchFormat); err != nil {
+		return err
+	}
+	if err := validateSyslogFormat(cfg.SyslogFormat); err != nil {
+		return err
 	}
 	return nil
 }
 
 // Validate source URL
 func validateSource(value string) error {
+	if value == "" {
+		return errEmptyValue
+	}
 	uri, err := url.Parse(value)
 	if err != nil {
 		return err
@@ -247,11 +262,22 @@ func validateCloudwatchFormat(value string) error {
 	return nil
 }
 
+func validateQueueSize(value uint16) error {
+	return nil
+}
+
+func validateUploadDelay(value uint16) error {
+	if value < minUploadDelay {
+		return errTooSmall
+	}
+	return nil
+}
+
 func validateLogOutput(value string) error {
 	if value == "" {
 		return errEmptyValue
 	}
-	if !strContains(validOutputOptions, value) {
+	if !strIn(validOutputOptions, value) {
 		return errInvalidValue
 	}
 	return nil
@@ -261,13 +287,13 @@ func validateLogLevel(value string) error {
 	if value == "" {
 		return errEmptyValue
 	}
-	if !strContains(validLevelOptions, value) {
+	if !strIn(validLevelOptions, value) {
 		return errInvalidValue
 	}
 	return nil
 }
 
-func strContains(haystack []string, needle string) bool {
+func strIn(haystack []string, needle string) bool {
 	for _, elem := range haystack {
 		if elem == needle {
 			return true

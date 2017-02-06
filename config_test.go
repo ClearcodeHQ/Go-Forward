@@ -61,12 +61,6 @@ func TestValidateSource_error(t *testing.T) {
 	}
 }
 
-func TestValidateFlowSection_missing_key(t *testing.T) {
-	sec := empty_ini_section()
-	err := validateFlowSection(sec)
-	assert.NotNil(t, err)
-}
-
 func Test_validateSyslogFormat_empty(t *testing.T) {
 	err := validateSyslogFormat("")
 	assert.Equal(t, errEmptyValue, err)
@@ -115,9 +109,21 @@ func Test_validateLogOutput_ok(t *testing.T) {
 }
 
 func Test_validateStrContains_false(t *testing.T) {
-	assert.False(t, strContains([]string{}, "needle"))
+	assert.False(t, strIn([]string{}, "needle"))
 }
 
 func Test_validateStrContains_true(t *testing.T) {
-	assert.True(t, strContains([]string{"needle"}, "needle"))
+	assert.True(t, strIn([]string{"needle"}, "needle"))
+}
+
+func Test_validateUploadDelay_ok(t *testing.T) {
+	assert.Nil(t, validateUploadDelay(300))
+}
+
+func Test_validateUploadDelay_too_small(t *testing.T) {
+	assert.Equal(t, errTooSmall, validateUploadDelay(1))
+}
+
+func Test_validateQueueSize_ok(t *testing.T) {
+	assert.Nil(t, validateQueueSize(0))
 }
