@@ -28,11 +28,11 @@ func (m eventsList) Less(i, j int) bool {
 
 type eventQueue struct {
 	events   eventsList
-	max_size int
+	max_size uint16
 }
 
 func (q *eventQueue) add(event ...logEvent) {
-	left := q.max_size - len(q.events)
+	left := int(q.max_size) - len(q.events)
 	many := event[:min(left, len(event))]
 	q.events = append(q.events, many...)
 }

@@ -118,11 +118,6 @@ func closeAll(receivers []receiver) {
 func setupFlows(flows []*FlowCfg, service *cloudwatchlogs.CloudWatchLogs) (receivers []receiver) {
 	log.Debug("seting flow")
 	for _, flow := range flows {
-		dst := &destination{
-			svc:    service,
-			stream: flow.Stream,
-			group:  flow.Group,
-		}
 		receiver := newReceiver(flow.Source)
 		receivers = append(receivers, receiver)
 		if err := receiver.Listen(); err != nil {
@@ -133,7 +128,7 @@ func setupFlows(flows []*FlowCfg, service *cloudwatchlogs.CloudWatchLogs) (recei
 		out := make(chan logEvent)
 		format, _ := template.New("").Parse(flow.CloudwatchFormat)
 		go convertEvents(in, out, parserFunctions[flow.SyslogFormat], format)
-		go recToDst(out, dst, putLogEventsDelay)
+		go recToDst(out, flow, service)
 	}
 	return
 }
@@ -165,15 +160,21 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 }
 
 // Buffer received events and send them to cloudwatch.
-func recToDst(in <-chan logEvent, dst *destination, delay time.Duration) {
+func recToDst(in <-chan logEvent, cfg *FlowCfg, service *cloudwatchlogs.CloudWatchLogs) {
 	wg.Add(1)
 	defer wg.Done()
+	dst := &destination{
+		svc:    service,
+		stream: cfg.Stream,
+		group:  cfg.Group,
+	}
 	log.Debugf("%s setting token", dst)
 	dst.setToken()
+	delay := time.Duration(cfg.UploadDelay) * time.Millisecond
 	ticker := time.NewTicker(delay)
 	log.Debugf("%s timer set to %s", dst, delay)
 	defer ticker.Stop()
-	queue := &eventQueue{max_size: 10000}
+	queue := &eventQueue{max_size: cfg.QueueSize}
 	var uploadDone chan batchFunc
 	var batch eventsList
 	for {
