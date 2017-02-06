@@ -84,16 +84,18 @@ func main() {
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.ErrorLevel)
-	config := getConfig(cfgfile)
-	settings := getMainConfig(config)
-	flows := getFlows(config)
+	config := NewIniConfig(cfgfile)
+	if err := config.Validate(); err != nil {
+		log.Fatal(err)
+	}
+	settings := config.GetMain()
+	flows := config.GetFlows()
 	cwlogs := cwlogsSession()
-	listenAll(flows)
 	log.SetOutput(ioutil.Discard)
-	hook := pickHook(settings.logOutput)
+	hook := pickHook(strToOutput[settings.LogOutput])
 	log.AddHook(hook)
-	log.SetLevel(settings.logLevel)
-	setupFlows(flows, cwlogs)
+	log.SetLevel(strToLevel[settings.LogLevel])
+	receivers := setupFlows(flows, cwlogs)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	select {
@@ -101,36 +103,39 @@ func main() {
 		log.Infof("got SIGINT/SIGTERM")
 		break
 	}
-	closeAll(flows)
+	closeAll(receivers)
 	log.Debugf("waiting for upload to finish")
 	wg.Wait()
 }
 
-func closeAll(flows []flowCfg) {
+func closeAll(receivers []receiver) {
 	log.Info("closing connections")
-	for _, flow := range flows {
-		flow.recv.Close()
+	for _, receiver := range receivers {
+		receiver.Close()
 	}
 }
 
-func listenAll(flows []flowCfg) {
-	for _, flow := range flows {
-		if err := flow.recv.Listen(); err != nil {
-			closeAll(flows)
-			log.Fatal(err)
-		}
-	}
-}
-
-func setupFlows(flows []flowCfg, service *cloudwatchlogs.CloudWatchLogs) {
+func setupFlows(flows []*FlowCfg, service *cloudwatchlogs.CloudWatchLogs) (receivers []receiver) {
 	log.Debug("seting flow")
 	for _, flow := range flows {
-		flow.dst.svc = service
-		in := flow.recv.Receive()
+		dst := &destination{
+			svc:    service,
+			stream: flow.Stream,
+			group:  flow.Group,
+		}
+		receiver := newReceiver(flow.Source)
+		receivers = append(receivers, receiver)
+		if err := receiver.Listen(); err != nil {
+			closeAll(receivers)
+			log.Fatal(err)
+		}
+		in := receiver.Receive()
 		out := make(chan logEvent)
-		go convertEvents(in, out, flow.syslogFn, flow.format)
-		go recToDst(out, flow.dst, putLogEventsDelay)
+		format, _ := template.New("").Parse(flow.CloudwatchFormat)
+		go convertEvents(in, out, parserFunctions[flow.SyslogFormat], format)
+		go recToDst(out, dst, putLogEventsDelay)
 	}
+	return
 }
 
 // Parse, filter incoming messages and send them to destination.
