@@ -24,6 +24,7 @@ import (
 var version string
 var wg = &sync.WaitGroup{}
 var cwlogs *cloudwatchlogs.CloudWatchLogs
+var ec2meta *ec2metadata.EC2Metadata
 
 const defaultConfigFile = "/etc/logs_agent.cfg"
 
@@ -174,7 +175,9 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 func recToDst(in <-chan logEvent, cfg *FlowCfg) {
 	wg.Add(1)
 	defer wg.Done()
-	dst := newDestination(cfg.Stream, cfg.Group)
+	stream_vars := getStreamVars()
+	stream_name := stream_vars.render(cfg.Stream)
+	dst := newDestination(stream_name, cfg.Group)
 	ticker := newDelayTicker(cfg.UploadDelay, dst)
 	defer ticker.Stop()
 	queue := &eventQueue{max_size: cfg.QueueSize}
@@ -255,3 +258,34 @@ func addBack(batch eventsList, queue *eventQueue) {
 }
 
 func discard(batch eventsList, queue *eventQueue) {}
+
+type streamVars struct {
+	InstanceID string
+	Hostname   string
+}
+
+func (v streamVars) render(format string) string {
+	buf := bytes.NewBuffer([]byte{})
+	tpl, err := template.New("").Parse(format)
+	if err != nil {
+		log.Fatalf("failed to render stream name: %v", err)
+	}
+	tpl.Execute(buf, v)
+	return buf.String()
+}
+
+func getStreamVars() (variables streamVars) {
+	hostname, err := os.Hostname()
+	variables.Hostname = "UNKNOWN"
+	variables.InstanceID = "UNKNOWN"
+	if err == nil {
+		variables.Hostname = hostname
+	}
+	if ec2meta.Available() {
+		instance_document, err := ec2meta.GetInstanceIdentityDocument()
+		if err == nil {
+			variables.InstanceID = instance_document.InstanceID
+		}
+	}
+	return
+}
