@@ -17,10 +17,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
 var version string
+var wg = &sync.WaitGroup{}
+var cwlogs *cloudwatchlogs.CloudWatchLogs
 
 const defaultConfigFile = "/etc/logs_agent.cfg"
 
@@ -69,8 +73,6 @@ func init() {
 	debug()
 }
 
-var wg = &sync.WaitGroup{}
-
 func main() {
 	var cfgfile string
 	var print_version bool
@@ -90,12 +92,12 @@ func main() {
 	}
 	settings := config.GetMain()
 	flows := config.GetFlows()
-	cwlogs := cwlogsSession()
+	setServices()
 	log.SetOutput(ioutil.Discard)
 	hook := pickHook(strToOutput[settings.LogOutput])
 	log.AddHook(hook)
 	log.SetLevel(strToLevel[settings.LogLevel])
-	receivers := setupFlows(flows, cwlogs)
+	receivers := setupFlows(flows)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	select {
@@ -108,6 +110,17 @@ func main() {
 	wg.Wait()
 }
 
+func setServices() {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	cwlogs = cloudwatchlogs.New(sess)
+	ec2meta = ec2metadata.New(sess)
+}
+
 func closeAll(receivers []receiver) {
 	log.Info("closing connections")
 	for _, receiver := range receivers {
@@ -115,7 +128,7 @@ func closeAll(receivers []receiver) {
 	}
 }
 
-func setupFlows(flows []*FlowCfg, service *cloudwatchlogs.CloudWatchLogs) (receivers []receiver) {
+func setupFlows(flows []*FlowCfg) (receivers []receiver) {
 	log.Debug("seting flow")
 	for _, flow := range flows {
 		receiver := newReceiver(flow.Source)
@@ -128,7 +141,7 @@ func setupFlows(flows []*FlowCfg, service *cloudwatchlogs.CloudWatchLogs) (recei
 		out := make(chan logEvent)
 		format, _ := template.New("").Parse(flow.CloudwatchFormat)
 		go convertEvents(in, out, parserFunctions[flow.SyslogFormat], format)
-		go recToDst(out, flow, service)
+		go recToDst(out, flow)
 	}
 	return
 }
@@ -160,16 +173,10 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 }
 
 // Buffer received events and send them to cloudwatch.
-func recToDst(in <-chan logEvent, cfg *FlowCfg, service *cloudwatchlogs.CloudWatchLogs) {
+func recToDst(in <-chan logEvent, cfg *FlowCfg) {
 	wg.Add(1)
 	defer wg.Done()
-	dst := &destination{
-		svc:    service,
-		stream: cfg.Stream,
-		group:  cfg.Group,
-	}
-	log.Debugf("%s setting token", dst)
-	dst.setToken()
+	dst := newDestination(cfg.Stream, cfg.Group)
 	ticker := newDelayTicker(cfg.UploadDelay, dst)
 	defer ticker.Stop()
 	queue := &eventQueue{max_size: cfg.QueueSize}

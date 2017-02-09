@@ -7,7 +7,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
@@ -54,6 +53,17 @@ type destination struct {
 	group  string
 	token  *string
 	svc    *cloudwatchlogs.CloudWatchLogs
+}
+
+func newDestination(stream, group string) *destination {
+	dst := &destination{
+		svc:    cwlogs,
+		stream: stream,
+		group:  group,
+	}
+	log.Debugf("%s setting token", dst)
+	dst.setToken()
+	return dst
 }
 
 // Put log events and update sequence token.
@@ -146,14 +156,4 @@ func findToken(dst *destination, page *cloudwatchlogs.DescribeLogStreamsOutput) 
 		}
 	}
 	return false
-}
-
-func cwlogsSession() *cloudwatchlogs.CloudWatchLogs {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	return cloudwatchlogs.New(sess)
 }
