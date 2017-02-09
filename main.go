@@ -142,6 +142,7 @@ func setupFlows(flows []*FlowCfg) (receivers []receiver) {
 		out := make(chan logEvent)
 		format, _ := template.New("").Parse(flow.CloudwatchFormat)
 		go convertEvents(in, out, parserFunctions[flow.SyslogFormat], format)
+		wg.Add(1)
 		go recToDst(out, flow)
 	}
 	return
@@ -175,7 +176,6 @@ func convertEvents(in <-chan string, out chan<- logEvent, parsefn syslogParser, 
 
 // Buffer received events and send them to cloudwatch.
 func recToDst(in <-chan logEvent, cfg *FlowCfg) {
-	wg.Add(1)
 	defer wg.Done()
 	stream_vars := getStreamVars()
 	stream_name := stream_vars.render(cfg.Stream)
