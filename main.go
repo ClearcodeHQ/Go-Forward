@@ -119,6 +119,7 @@ func setServices() {
 		log.Fatal(err)
 	}
 	cwlogs = cloudwatchlogs.New(sess)
+	ec2meta = ec2metadata.New(sess)
 }
 
 func closeAll(receivers []receiver) {
