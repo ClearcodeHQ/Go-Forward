@@ -36,7 +36,11 @@ const (
 	stderrOutputOption = "stderr"
 )
 
-type logoutput uint8
+type (
+	logoutput    uint8
+	upload_delay uint16
+	queue_size   uint16
+)
 
 type Configuration interface {
 	GetMain() *MainCfg
@@ -50,13 +54,13 @@ type MainCfg struct {
 }
 
 type FlowCfg struct {
-	Group            string `ini:"group"`
-	Stream           string `ini:"stream"`
-	SyslogFormat     string `ini:"syslog_format"`
-	CloudwatchFormat string `ini:"cloudwatch_format"`
-	Source           string `ini:"source"`
-	UploadDelay      uint16 `ini:"upload_delay"`
-	QueueSize        uint16 `ini:"queue_size"`
+	Group            string       `ini:"group"`
+	Stream           string       `ini:"stream"`
+	SyslogFormat     string       `ini:"syslog_format"`
+	CloudwatchFormat string       `ini:"cloudwatch_format"`
+	Source           string       `ini:"source"`
+	UploadDelay      upload_delay `ini:"upload_delay"`
+	QueueSize        queue_size   `ini:"queue_size"`
 }
 
 const (
@@ -262,11 +266,11 @@ func validateCloudwatchFormat(value string) error {
 	return nil
 }
 
-func validateQueueSize(value uint16) error {
+func validateQueueSize(value queue_size) error {
 	return nil
 }
 
-func validateUploadDelay(value uint16) error {
+func validateUploadDelay(value upload_delay) error {
 	if value < minUploadDelay {
 		return errTooSmall
 	}

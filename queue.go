@@ -28,7 +28,7 @@ func (m eventsList) Less(i, j int) bool {
 
 type eventQueue struct {
 	events   eventsList
-	max_size uint16
+	max_size queue_size
 }
 
 func (q *eventQueue) add(event ...logEvent) {

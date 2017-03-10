@@ -164,7 +164,7 @@ func recToDst(in <-chan logEvent, cfg *FlowCfg) {
 	}
 }
 
-func newDelayTicker(delay uint16, dst *destination) *time.Ticker {
+func newDelayTicker(delay upload_delay, dst *destination) *time.Ticker {
 	d := time.Duration(delay) * time.Millisecond
 	log.Debugf("%s timer set to %s", dst, d)
 	return time.NewTicker(d)
