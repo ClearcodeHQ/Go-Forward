@@ -23,27 +23,25 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 		err = errEmptyMessage
 		return
 	}
+	parsed.Message = msg
+	parsed.Syslogtag = tag
+	parsed.Hostname = hname
 
 	_, err = fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
 	if err != nil {
 		return
 	}
 
-	ts, err = time.Parse(time.RFC3339, timestamp)
+	ts, err = parseRFC3339(timestamp)
 	if err != nil {
 		return
 	}
+	parsed.timestamp = ts
 
 	fac, sev := pri.decode()
+	parsed.Facility = fac
+	parsed.Severity = sev
 
-	parsed = syslogMessage{
-		Facility:  fac,
-		Severity:  sev,
-		Message:   msg,
-		Syslogtag: tag,
-		Hostname:  hname,
-		timestamp: ts,
-	}
 	return
 }
 
