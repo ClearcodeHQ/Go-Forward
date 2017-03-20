@@ -50,3 +50,8 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 var parserFunctions = map[string]syslogParser{
 	"RFC3164": parseRFC3164,
 }
+
+func parseRFC3339(str string) (ts time.Time, err error) {
+	ts, err = time.Parse(time.RFC3339, str)
+	return
+}

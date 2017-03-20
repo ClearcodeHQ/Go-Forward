@@ -54,3 +54,15 @@ func TestUnknownMessage(t *testing.T) {
 	_, err := parseRFC3164(msg)
 	assert.Equal(t, errUnknownMessageFormat, err)
 }
+
+func Test_valid_parseRFC3339(t *testing.T) {
+	str := "2016-07-23T14:48:16.969683+02:00"
+	_, err := parseRFC3339(str)
+	assert.Nil(t, err)
+}
+
+func Test_invalid_parseRFC3339(t *testing.T) {
+	str := "201-07-23T14:48:16.969683+02:00"
+	_, err := parseRFC3339(str)
+	assert.NotNil(t, err)
+}
