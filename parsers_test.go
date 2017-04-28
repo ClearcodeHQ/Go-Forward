@@ -20,9 +20,9 @@ func Test_Parse_RFC3164_Severity(t *testing.T) {
 }
 
 func Test_parseRFC3164_empty(t *testing.T) {
-	msg := "<86>Jul 23 14:48:16 debian sudo:"
+	msg := "<86>Jul 23 14:48:16 debian sudo:     "
 	_, err := parseRFC3164(msg)
-	assert.NotNil(t, err)
+	assert.Equal(t, err, errEmptyMessage)
 }
 
 func TestUnknownMessage(t *testing.T) {
