@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,52 +13,39 @@ var parserFunctions = map[string]syslogParser{
 }
 
 // https://tools.ietf.org/html/rfc3164
-func parseRFC3164(msg string) (parsed syslogMessage, err error) {
-	pri_end_index := strings.Index(msg, ">")
-	if pri_end_index == -1 {
-		err = errUnknownMessageFormat
-		return
-	}
-	// Priority string length can be at most 4 chars long.
-	if pri_end_index > 3 {
-		err = errUnknownMessageFormat
-		return
-	}
-	pri_end_index += 1
-	priority := msg[0:pri_end_index]
-	var pri SyslogPriority
-	_, err = fmt.Sscanf(priority, "<%d>", &pri)
-	if err != nil {
+func parseRFC3164(str string) (parsed syslogMessage, err error) {
+	str = strings.Replace(str, "<", "", 1)
+	str = strings.Replace(str, ">", " ", 1)
+	str = strings.Replace(str, "  ", " ", 1)
+	strs := strings.SplitN(str, " ", 7)
+	if len(strs) != 7 {
 		err = errUnknownMessageFormat
 		return
 	}
 
-	if len(msg[pri_end_index:]) < pri_end_index+len(time.Stamp) {
-		err = errUnknownMessageFormat
+	priority, err := strconv.Atoi(strs[0])
+	if err != nil {
 		return
 	}
-	ts := msg[pri_end_index:(pri_end_index + len(time.Stamp))]
-	timestamp, err := parseRFC3164Timestamp(ts)
+	fac, sev := SyslogPriority(priority).decode()
+	parsed.Facility = fac
+	parsed.Severity = sev
+
+	date := strings.Join(strs[1:4], " ")
+	timestamp, err := parseRFC3164Timestamp(date)
 	if err != nil {
 		return
 	}
 	parsed.timestamp = timestamp
 
-	splitted := strings.SplitN(msg[(pri_end_index+len(time.Stamp)+1):], " ", 3)
-	hostname, syslog_tag, message := splitted[0], splitted[1], splitted[2]
-
-	message = strings.TrimSpace(message)
-	if message == "" {
+	parsed.Message = strings.TrimSpace(strs[6])
+	if parsed.Message == "" {
 		err = errEmptyMessage
 		return
 	}
-	parsed.Message = msg
-	parsed.Syslogtag = syslog_tag
-	parsed.Hostname = hostname
 
-	fac, sev := pri.decode()
-	parsed.Facility = fac
-	parsed.Severity = sev
+	parsed.Syslogtag = strs[5]
+	parsed.Hostname = strs[4]
 
 	return
 }

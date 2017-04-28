@@ -2,51 +2,27 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Parse_RFC3164_nil_error(t *testing.T) {
+func Test_Parse_RFC3164_Severity(t *testing.T) {
 	msg := "<86>Jul 23 14:48:16 debian sudo: pam_unix(sudo:session): session closed for user root"
-	_, err := parseRFC3164(msg)
+	parsed, err := parseRFC3164(msg)
+	assert.Equal(t, logInfo, parsed.Severity)
+	assert.Equal(t, logAuthpriv, parsed.Facility)
+	assert.Equal(t, time.Month(7), parsed.timestamp.Month())
+	assert.Equal(t, "debian", parsed.Hostname)
+	assert.Equal(t, "sudo:", parsed.Syslogtag)
+	assert.Equal(t, "pam_unix(sudo:session): session closed for user root", parsed.Message)
 	assert.Nil(t, err)
 }
 
-func Test_Parse_RFC3164_Severity(t *testing.T) {
-	parsed, _ := parseRFC3164(testMessage.raw)
-	assert.Equal(t, testMessage.severity, parsed.Severity)
-}
-
-func Test_Parse_RFC3164_Facility(t *testing.T) {
-	parsed, _ := parseRFC3164(testMessage.raw)
-	assert.Equal(t, testMessage.facility, parsed.Facility)
-}
-
-func Test_Parse_RFC3164Timestamp(t *testing.T) {
-	msg := "Jul 23 14:48:16"
-	ts, _ := parseRFC3164Timestamp(msg)
-	assert.Equal(t, 7, ts.Month())
-}
-
-func Test_ParseMessage_Hostname(t *testing.T) {
-	parsed, _ := parseRFC3164(testMessage.raw)
-	assert.Equal(t, testMessage.hostname, parsed.Hostname)
-}
-
-func Test_ParseMessage_Syslogtag(t *testing.T) {
-	parsed, _ := parseRFC3164(testMessage.raw)
-	assert.Equal(t, testMessage.syslogTag, parsed.Syslogtag)
-}
-
-func Test_ParseMessage_Message(t *testing.T) {
-	parsed, _ := parseRFC3164(testMessage.raw)
-	assert.Equal(t, testMessage.message, parsed.Message)
-}
-
 func Test_parseRFC3164_empty(t *testing.T) {
-	emptyMessage := "<86>2016-07-23T14:48:16.969683+02:00 debian su[2106]: "
-	_, err := parseRFC3164(emptyMessage)
-	assert.Equal(t, errEmptyMessage, err)
+	msg := "<86>Jul 23 14:48:16 debian sudo:"
+	_, err := parseRFC3164(msg)
+	assert.NotNil(t, err)
 }
 
 func TestUnknownMessage(t *testing.T) {
@@ -59,5 +35,12 @@ func TestUnknownMessage(t *testing.T) {
 	for _, msg := range bad_messages {
 		_, err := parseRFC3164(msg)
 		assert.Equal(t, errUnknownMessageFormat, err)
+	}
+}
+
+func Benchmark_parseRCF3164(b *testing.B) {
+	msg := "<86>Jul 23 14:48:16 debian sudo: pam_unix(sudo:session): session closed for user root"
+	for n := 0; n < b.N; n++ {
+		parseRFC3164(msg)
 	}
 }
