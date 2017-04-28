@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-type severity uint8
-type facility uint8
-type priority uint8
+type SyslogSeverity uint8
+type SyslogFacility uint8
+type SyslogPriority uint8
 
 type syslogMessage struct {
-	Facility  facility
-	Severity  severity
+	Facility  SyslogFacility
+	Severity  SyslogSeverity
 	Message   string
 	Syslogtag string
 	Hostname  string
@@ -23,7 +23,7 @@ const maxMsgLen = 2048
 
 // From /usr/include/sys/syslog.h.
 const (
-	logEmerg severity = iota
+	logEmerg SyslogSeverity = iota
 	logAlert
 	logCrit
 	logErr
@@ -33,7 +33,7 @@ const (
 	logDebug
 )
 
-var severityMap = map[severity]string{
+var severityMap = map[SyslogSeverity]string{
 	logEmerg:   "EMERG",
 	logAlert:   "ALERT",
 	logCrit:    "CRIT",
@@ -46,7 +46,7 @@ var severityMap = map[severity]string{
 
 // From /usr/include/sys/syslog.h.
 const (
-	logKern facility = iota
+	logKern SyslogFacility = iota
 	logUser
 	logMail
 	logDaemon
@@ -72,7 +72,7 @@ const (
 	logLocal7
 )
 
-var facilityMap = map[facility]string{
+var facilityMap = map[SyslogFacility]string{
 	logKern:     "KERN",
 	logUser:     "USER",
 	logMail:     "MAIL",
@@ -99,22 +99,22 @@ var facilityMap = map[facility]string{
 	logLocal7:   "LOCAL7",
 }
 
-func (s severity) String() string {
+func (s SyslogSeverity) String() string {
 	if val, ok := severityMap[s]; ok {
 		return val
 	}
 	return "UNKNOWN"
 }
 
-func (f facility) String() string {
+func (f SyslogFacility) String() string {
 	if val, ok := facilityMap[f]; ok {
 		return val
 	}
 	return "UNKNOWN"
 }
 
-func (p priority) decode() (facility, severity) {
-	return facility(p / 8), severity(p % 8)
+func (p SyslogPriority) decode() (SyslogFacility, SyslogSeverity) {
+	return SyslogFacility(p / 8), SyslogSeverity(p % 8)
 }
 
 func (s syslogMessage) render(tpl *template.Template, buf *bytes.Buffer) error {

@@ -8,35 +8,53 @@ import (
 
 type syslogParser func(msg string) (syslogMessage, error)
 
+var parserFunctions = map[string]syslogParser{
+	"RFC3164": parseRFC3164,
+}
+
+// https://tools.ietf.org/html/rfc3164
 func parseRFC3164(msg string) (parsed syslogMessage, err error) {
-	var pri priority
-	var timestamp string
-	var ts time.Time
-	splited := strings.SplitN(msg, " ", 4)
-	if len(splited) != 4 {
+	pri_end_index := strings.Index(msg, ">")
+	if pri_end_index == -1 {
 		err = errUnknownMessageFormat
 		return
 	}
-	header, hname, tag, msg := splited[0], splited[1], splited[2], splited[3]
-	msg = strings.Trim(msg, " \n\t")
-	if msg == "" {
+	// Priority string length can be at most 4 chars long.
+	if pri_end_index > 3 {
+		err = errUnknownMessageFormat
+		return
+	}
+	pri_end_index += 1
+	priority := msg[0:pri_end_index]
+	var pri SyslogPriority
+	_, err = fmt.Sscanf(priority, "<%d>", &pri)
+	if err != nil {
+		err = errUnknownMessageFormat
+		return
+	}
+
+	if len(msg[pri_end_index:]) < pri_end_index+len(time.Stamp) {
+		err = errUnknownMessageFormat
+		return
+	}
+	ts := msg[pri_end_index:(pri_end_index + len(time.Stamp))]
+	timestamp, err := parseRFC3164Timestamp(ts)
+	if err != nil {
+		return
+	}
+	parsed.timestamp = timestamp
+
+	splitted := strings.SplitN(msg[(pri_end_index+len(time.Stamp)+1):], " ", 3)
+	hostname, syslog_tag, message := splitted[0], splitted[1], splitted[2]
+
+	message = strings.Trim(message, " \n\t")
+	if message == "" {
 		err = errEmptyMessage
 		return
 	}
 	parsed.Message = msg
-	parsed.Syslogtag = tag
-	parsed.Hostname = hname
-
-	_, err = fmt.Sscanf(header, "<%d>%s", &pri, &timestamp)
-	if err != nil {
-		return
-	}
-
-	ts, err = parseRFC3339(timestamp)
-	if err != nil {
-		return
-	}
-	parsed.timestamp = ts
+	parsed.Syslogtag = syslog_tag
+	parsed.Hostname = hostname
 
 	fac, sev := pri.decode()
 	parsed.Facility = fac
@@ -45,11 +63,14 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 	return
 }
 
-var parserFunctions = map[string]syslogParser{
-	"RFC3164": parseRFC3164,
-}
-
-func parseRFC3339(str string) (ts time.Time, err error) {
-	ts, err = time.Parse(time.RFC3339, str)
+// https://tools.ietf.org/html/rfc3164#section-4.1.2
+func parseRFC3164Timestamp(timestamp string) (ts time.Time, err error) {
+	ts, err = time.Parse(time.Stamp, timestamp)
+	if err != nil {
+		return
+	}
+	now := time.Now()
+	ts = time.Date(now.Year(), ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+		ts.Second(), ts.Nanosecond(), ts.Location())
 	return
 }

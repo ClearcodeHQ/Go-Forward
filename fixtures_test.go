@@ -31,16 +31,16 @@ func empty_ini_section() *ini.Section {
 }
 
 var testPriorities = []TestSyslogPriority{
-	{severity: logErr, facility: logMail, priority: 19},
-	{severity: logEmerg, facility: logKern, priority: 0},
-	{severity: logAlert, facility: logUser, priority: 9},
+	{severity: logErr, facility: logMail, priority: SyslogPriority(19)},
+	{severity: logEmerg, facility: logKern, priority: SyslogPriority(0)},
+	{severity: logAlert, facility: logUser, priority: SyslogPriority(9)},
 }
 
 var testMessage = struct {
 	raw string
 	// Parsed expected fields
-	severity  severity
-	facility  facility
+	severity  SyslogSeverity
+	facility  SyslogFacility
 	timestamp time.Time
 	hostname  string
 	syslogTag string

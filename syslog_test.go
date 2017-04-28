@@ -10,18 +10,18 @@ import (
 )
 
 type TestSyslogPriority struct {
-	priority priority
-	severity severity
-	facility facility
+	priority SyslogPriority
+	severity SyslogSeverity
+	facility SyslogFacility
 }
 
 func TestSeverityStringUnknown(t *testing.T) {
-	sev := severity(254)
+	sev := SyslogSeverity(254)
 	assert.Equal(t, "UNKNOWN", sev.String())
 }
 
 func TestFacilityStringUnknown(t *testing.T) {
-	fac := facility(254)
+	fac := SyslogFacility(254)
 	assert.Equal(t, "UNKNOWN", fac.String())
 }
 
@@ -39,14 +39,14 @@ func TestFacilityString(t *testing.T) {
 
 func TestDecodeSyslogPriority_severity(t *testing.T) {
 	for _, elem := range testPriorities {
-		_, severity := priority.decode(elem.priority)
+		_, severity := SyslogPriority.decode(elem.priority)
 		assert.Equal(t, severity, elem.severity)
 	}
 }
 
 func TestDecodeSyslogPriority_facility(t *testing.T) {
 	for _, elem := range testPriorities {
-		facility, _ := priority.decode(elem.priority)
+		facility, _ := SyslogPriority.decode(elem.priority)
 		assert.Equal(t, facility, elem.facility)
 	}
 }
