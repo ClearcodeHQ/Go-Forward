@@ -47,7 +47,7 @@ func parseRFC3164(msg string) (parsed syslogMessage, err error) {
 	splitted := strings.SplitN(msg[(pri_end_index+len(time.Stamp)+1):], " ", 3)
 	hostname, syslog_tag, message := splitted[0], splitted[1], splitted[2]
 
-	message = strings.Trim(message, " \n\t")
+	message = strings.TrimSpace(message)
 	if message == "" {
 		err = errEmptyMessage
 		return
