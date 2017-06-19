@@ -30,20 +30,19 @@ func init() {
 	debug()
 }
 
+func usage() {
+	fmt.Fprintf(os.Stdout, "Usage of %s (version %s):\n", os.Args[0], version)
+	flag.PrintDefaults()
+}
+
 func main() {
-	var cfgfile string
-	var print_version bool
-	flag.StringVar(&cfgfile, "c", defaultConfigFile, "Config file location.")
-	flag.BoolVar(&print_version, "v", false, "Print version and exit.")
+	flag.Usage = usage
+	cfgfile := flag.String("c", defaultConfigFile, "Config file location.")
 	flag.Parse()
-	if print_version {
-		fmt.Println(version)
-		os.Exit(0)
-	}
 	log.SetFormatter(&programFormat{})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.ErrorLevel)
-	config := NewIniConfig(cfgfile)
+	config := NewIniConfig(*cfgfile)
 	if err := config.Validate(); err != nil {
 		log.Fatal(err)
 	}
